@@ -5,6 +5,7 @@ import (
 	"monidroid/android"
 	"monidroid/util"
 	"os"
+	"time"
 )
 
 var PKG_PATH = "pkg.txt"
@@ -21,15 +22,15 @@ func main() {
 	initConfig()
 
 	//create package information file
-	//	file, err := os.OpenFile(PKG_PATH, os.O_CREATE|os.O_RDWR|os.O_TRUNC, os.ModePerm)
-	//	util.FatalCheck(err)
+	file, err := os.OpenFile(PKG_PATH, os.O_CREATE|os.O_RDWR|os.O_TRUNC, os.ModePerm)
+	util.FatalCheck(err)
 
-	//	_, err = file.WriteString(getPackageName())
-	//	util.FatalCheck(err)
-	//	file.Close()
+	_, err = file.WriteString(getPackageName())
+	util.FatalCheck(err)
+	file.Close()
 
-	//	//push apk file to device
-	//	android.PushFile(getSDKPath(), PKG_PATH, DEVICE_PKG_PATH)
+	//push apk file to device
+	android.PushFile(getSDKPath(), PKG_PATH, DEVICE_PKG_PATH)
 
 	//start logcat
 	go android.StartLogcat(getSDKPath(), activityQueue)
@@ -55,8 +56,8 @@ func main() {
 		} else {
 			isFirst = false
 		}
-		//android.LaunchApp(getSDKPath(), getPackageName(), getMainActivity())
-		//time.Sleep(time.Millisecond * 1000)
+		android.LaunchApp(getSDKPath(), getPackageName(), getMainActivity())
+		time.Sleep(time.Millisecond * 1000)
 
 		//TODO: start send event
 		android.StartMonkey(getSDKPath(), getPackageName())
@@ -65,7 +66,7 @@ func main() {
 
 	android.KillApp(getSDKPath(), getPackageName())
 	//remove target file
-	android.RemoveFile(getSDKPath(), DEVICE_TARGET_PATH)
+	//android.RemoveFile(getSDKPath(), DEVICE_TARGET_PATH)
 
 	log.Println(activityQueue.ToString())
 }

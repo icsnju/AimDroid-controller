@@ -1,2 +1,2 @@
-com.chuanwg.ui.activity.VersionActivity
-{"component":"com.chuanwg.chuanwugong\/com.chuanwg.ui.activity.VersionActivity","flags":"0"}
+com.chuanwg.ui.activity.LoginActivity
+{"component":"com.chuanwg.chuanwugong\/com.chuanwg.ui.activity.LoginActivity","flags":"0"}

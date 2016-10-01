@@ -103,7 +103,7 @@ func RemoveFile(sdk, dst string) error {
 }
 
 func StartMonkey(sdk, pkg string) (string, error) {
-	cmd := GetADBPath(sdk) + " shell monkey -p " + pkg + " --pct-touch 80 --throttle 300 -v 200"
+	cmd := GetADBPath(sdk) + " shell monkey -p " + pkg + " --pct-touch 80 --throttle 300 -v 1000"
 	out, err := util.ExeCmd(cmd)
 	return out, err
 }

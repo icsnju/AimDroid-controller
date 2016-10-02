@@ -7,13 +7,14 @@ import (
 )
 
 type ActivityQueue struct {
-	queue []*Activity
-	set   map[string]int
-	lock  *sync.Mutex
+	queue   []*Activity
+	set     map[string]int
+	focused string
+	lock    *sync.Mutex
 }
 
 func NewQueue() *ActivityQueue {
-	return &ActivityQueue{make([]*Activity, 0), make(map[string]int), new(sync.Mutex)}
+	return &ActivityQueue{make([]*Activity, 0), make(map[string]int), "", new(sync.Mutex)}
 }
 
 func (this *ActivityQueue) Enqueue(name, intent string) {
@@ -60,4 +61,22 @@ func (this *ActivityQueue) ToString() string {
 		result += name + "\n"
 	}
 	return result
+}
+
+func (this *ActivityQueue) SetFocusedActivity(name string) {
+	this.lock.Lock()
+	defer this.lock.Unlock()
+	this.focused = name
+}
+
+func (this *ActivityQueue) GetFocusedActivity() string {
+	this.lock.Lock()
+	defer this.lock.Unlock()
+	return this.focused
+}
+
+func (this *ActivityQueue) AddActivityInSet(name string) {
+	this.lock.Lock()
+	defer this.lock.Unlock()
+	this.set[name] = 0
 }

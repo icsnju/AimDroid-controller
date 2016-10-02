@@ -1,2 +1,0 @@
-com.chuanwg.ui.activity.LoginActivity
-{"component":"com.chuanwg.chuanwugong\/com.chuanwg.ui.activity.LoginActivity","flags":"0"}

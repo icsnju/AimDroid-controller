@@ -75,6 +75,7 @@ func StartLogcat(sdk string, queue *ActivityQueue) {
 						queue.Enqueue(iterms[2], iterms[3])
 					}
 				case LOG_CREATE:
+					queue.SetFocusedActivity(iterms[2])
 				case LOG_FINISH:
 				default:
 					//log.Println(content)
@@ -103,7 +104,14 @@ func RemoveFile(sdk, dst string) error {
 }
 
 func StartMonkey(sdk, pkg string) (string, error) {
-	cmd := GetADBPath(sdk) + " shell monkey -p " + pkg + " --pct-touch 80 --throttle 300 -v 1000"
+	cmd := GetADBPath(sdk) + " shell monkey --pct-touch 80 --pct-trackball 20 --throttle 300 -v 500"
 	out, err := util.ExeCmd(cmd)
 	return out, err
+}
+
+//adb forward
+func Forward(sdk, pcPort, mobilePort string) error {
+	cmd := GetADBPath(sdk) + " forward tcp:" + pcPort + " tcp:" + mobilePort
+	_, err := util.ExeCmd(cmd)
+	return err
 }

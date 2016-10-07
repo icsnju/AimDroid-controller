@@ -1,4 +1,4 @@
-package main
+package config
 
 import (
 	"encoding/json"
@@ -15,7 +15,7 @@ type Configure struct {
 var configPath = "configure.json"
 var configuration *Configure = &Configure{}
 
-func initConfig() {
+func InitConfig() {
 	content, err := ioutil.ReadFile(configPath)
 	if err != nil {
 		log.Fatalln(err)
@@ -31,14 +31,14 @@ func initConfig() {
 	}
 }
 
-func getPackageName() string {
+func GetPackageName() string {
 	return configuration.PackageName
 }
 
-func getMainActivity() string {
+func GetMainActivity() string {
 	return configuration.MainActivity
 }
 
-func getSDKPath() string {
+func GetSDKPath() string {
 	return configuration.SDKPath
 }

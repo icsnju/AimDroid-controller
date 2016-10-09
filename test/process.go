@@ -3,9 +3,9 @@ package test
 import (
 	"log"
 	"monidroid/android"
+	"monidroid/config"
 	"monidroid/util"
 	"net"
-	"strings"
 	"time"
 )
 
@@ -14,20 +14,28 @@ const (
 	BLOCK_KEY        = "block"
 	TARGET_KEY       = "target"
 	INTENT_KEY       = "intent"
+
+	TRUE  = "true"
+	FALSE = "false"
+
+	APE_TREE = "tree"
+	APE_SIZE = "size"
 )
 
-var activityQueue *android.ActivityQueue
-var ape *net.TCPConn
-var guider *net.TCPConn
+var gActivityQueue *ActivityQueue = nil
+var ape *net.TCPConn = nil
+var guider *net.TCPConn = nil
+var mTest *Test = nil
 
 //Start test
 func Start(a, g *net.TCPConn) {
 	//TODO:send pkgname
 	//	_, err = service.Write([]byte(PACKAGE_NAME_KEY + "@" + getPackageName() + "\n"))
 	//	util.FatalCheck(err)
+	log.Println("Start test..")
 
 	//create activity queue
-	activityQueue = android.NewQueue()
+	gActivityQueue = NewQueue()
 
 	//init connection
 	ape = a
@@ -37,80 +45,107 @@ func Start(a, g *net.TCPConn) {
 	go startObserver()
 
 	//init key
-	setKey("false", "", "")
+	setKey(FALSE, "", "")
 
 	//It is first time to launch this app
-	android.LaunchApp(getSDKPath(), getPackageName(), getMainActivity())
+	android.LaunchApp(config.GetPackageName(), config.GetMainActivity())
 	time.Sleep(time.Millisecond * 1000)
 
 	//Get currently focused activity
-	root := activityQueue.GetFocusedActivity()
-	activityQueue.AddActivityInSet(root)
+	root := android.GetCurrentActivity()
+	gActivityQueue.Enqueue(root, "")
 
-	//set the key
-	service.SetWriteDeadline(time.Now().Add(time.Minute))
-	_, err = service.Write([]byte(BLOCK_KEY + "@true\n"))
-	util.FatalCheck(err)
-	_, err = service.Write([]byte(TARGET_KEY + "@" + root + "\n"))
-	util.FatalCheck(err)
+	//Get an activity to test
+	for !gActivityQueue.IsEmpty() {
 
-	//start test the root activity
-	log.Println("[Test]", root)
-	android.StartMonkey(getSDKPath(), getPackageName())
+		//Step1: get an activity to start
+		act := gActivityQueue.Dequeue()
+		name, intent := act.Get()
+		//Test record the testing state
+		mTest = NewTest()
+		mTest.Act = act
 
-	//	for !activityQueue.IsEmpty() {
-	//		//kill this app started last time
-	//		android.KillApp(getSDKPath(), getPackageName())
+		if len(intent) <= 0 {
+			//It's the first time to start this application
+			//set the key
+			setKey(TRUE, name, intent)
+		} else {
+			//kill this app started last time
+			android.KillApp(config.GetPackageName())
+			//reset the key
+			setKey(FALSE, name, intent)
+			//launch app
+			android.LaunchApp(config.GetPackageName(), config.GetMainActivity())
+			time.Sleep(time.Millisecond * 1000)
+			//set the key
+			setKey(TRUE, name, intent)
+		}
+		log.Println("1. Start activity to generate actions..", act.name)
 
-	//		//get an activity to start
-	//		act := activityQueue.Dequeue()
-	//		name, intent := act.Get()
+		//Step2: generate initial actions set
+		mTest.Cache.clear()
+		for i := 0; i < 3; i++ {
+			sendCommandToApe(APE_TREE)
+			time.Sleep(time.Millisecond * 2000)
+			mTest.Cache.filterAction(mTest.ActSet)
+		}
 
-	//		//init key
-	//		service.SetWriteDeadline(time.Now().Add(time.Minute))
-	//		_, err = service.Write([]byte(BLOCK_KEY + "@false\n"))
-	//		util.FatalCheck(err)
-	//		_, err = service.Write([]byte(TARGET_KEY + "@" + name + "\n"))
-	//		util.FatalCheck(err)
-	//		_, err = service.Write([]byte(INTENT_KEY + "@" + intent + "\n"))
-	//		util.FatalCheck(err)
-	//		//launch app
-	//		android.LaunchApp(getSDKPath(), getPackageName(), getMainActivity())
-	//		time.Sleep(time.Millisecond * 1000)
+		if mTest.ActSet.GetCount() <= 0 {
+			log.Println("2.No acion is found!")
+			continue
+		}
+		log.Println("2. Initial actions count:", mTest.ActSet.GetCount(), ", start to test activity..")
 
-	//		service.SetWriteDeadline(time.Now().Add(time.Minute))
-	//		_, err = service.Write([]byte(BLOCK_KEY + "@true\n"))
-	//		util.FatalCheck(err)
+		//Step3: send event
+		log.Println("3.Start send action")
+		sequence := NewActionSequence()
+		for i := 0; i < 2*mTest.ActSet.GetCount(); i++ {
+			//clear log
+			mTest.Cache.clear()
+			//get an action
+			action, index := mTest.ActSet.GetMaxRewardAction()
+			if action == nil {
+				log.Fatalln("No action found!")
+			}
+			//send action
+			sendActionToApe(action)
+			time.Sleep(time.Millisecond * 500)
+			//get result
+			rs := mTest.Cache.filterResult()
 
-	//		//TODO: start send event
-	//		log.Println("[Test]", name)
-	//		android.StartMonkey(getSDKPath(), getPackageName())
-	//		//log.Println("[Monkey]", out)
-	//	}
+			//if nothing change
+			if rs.GetKind() == R_NOCHANGE {
+				sendCommandToApe(APE_TREE)
+				time.Sleep(time.Millisecond * 1000)
+				count := mTest.Cache.filterAction(mTest.ActSet)
+				if count > 3 {
+					cr, ok := rs.(*CommonResult)
+					if ok {
+						cr.SetKind(R_CHANGE)
+						rs = cr
+					}
+				}
+			}
+			Reward(mTest.ActSet, index, rs)
+			sequence.add(index, rs)
+		}
+
+		//log.Println("[Monkey]", out)
+	}
 
 	//clear the key
-	//	service.SetWriteDeadline(time.Now().Add(time.Minute))
-	//	_, err = service.Write([]byte(BLOCK_KEY + "@false\n"))
-	//	util.FatalCheck(err)
-	//	_, err = service.Write([]byte(TARGET_KEY + "\n"))
-	//	util.FatalCheck(err)
-	//	_, err = service.Write([]byte(INTENT_KEY + "\n"))
-	//	util.FatalCheck(err)
+	setKey(FALSE, "", "")
 
-	//	//close socket connection
-	//	service.Close()
-	//	//stop application
-	//	android.KillApp(getSDKPath(), getPackageName())
-	//	//stop guider service
-	//	android.KillApp(getSDKPath(), GUIDER_PACKAGE_NAME)
+	//stop application
+	android.KillApp(config.GetPackageName())
 
-	//	log.Println(activityQueue.ToString())
+	log.Println(gActivityQueue.ToString())
 }
 
 func setKey(block, target, intent string) {
 	//set key
 	guider.SetWriteDeadline(time.Now().Add(time.Minute))
-	_, err = guider.Write([]byte(BLOCK_KEY + "@" + block + "\n"))
+	_, err := guider.Write([]byte(BLOCK_KEY + "@" + block + "\n"))
 	util.FatalCheck(err)
 	if len(target) <= 0 {
 		_, err = guider.Write([]byte(TARGET_KEY + "\n"))
@@ -126,10 +161,23 @@ func setKey(block, target, intent string) {
 	util.FatalCheck(err)
 }
 
+func sendCommandToApe(cmd string) {
+	ape.SetWriteDeadline(time.Now().Add(time.Minute))
+	_, err := ape.Write([]byte(cmd + "\n"))
+	util.FatalCheck(err)
+}
+
+func sendActionToApe(a *Action) {
+	ape.SetWriteDeadline(time.Now().Add(time.Minute))
+	_, err := ape.Write([]byte(a.getContent() + "\n"))
+	util.FatalCheck(err)
+}
+
 func startObserver() {
+	log.Println("Start observer..")
+
 	read, err := android.StartLogcat()
 	util.FatalCheck(err)
-
 	for {
 		content, _, err := read.ReadLine()
 		if err != nil {
@@ -137,20 +185,47 @@ func startObserver() {
 			break
 		}
 		if len(content) > 0 {
-			iterms := strings.Split(string(content), "@")
-			if len(iterms) >= 2 {
-				switch iterms[1] {
-				case LOG_START:
-					if len(iterms) >= 4 {
-						activityQueue.Enqueue(iterms[2], iterms[3])
-					}
-				case LOG_CREATE:
-					activityQueue.SetFocusedActivity(iterms[2])
-				case LOG_FINISH:
-				default:
-					//log.Println(content)
-				}
+			//TODO mTest is nil
+			if mTest != nil {
+				mTest.Cache.add(string(content))
 			}
 		}
+	}
+}
+
+//Adjust reward of this action
+func Reward(set *ActionSet, index int, result Result) {
+	kind := result.GetKind()
+
+	switch kind {
+	case R_ACTIVITY:
+		actRs, ok := result.(*ActivityResult)
+		if !ok {
+			log.Fatalln("Activity result err")
+		}
+
+		ok = gActivityQueue.Enqueue(actRs.GetContent())
+		if ok {
+			//It is a new activity
+			set.AdjustReward(index, 1, 1)
+
+			//Reward my siblings
+			set.AdjustReward(index+1, 1, 0)
+			set.AdjustReward(index+1, 1, 0)
+		} else {
+			//It is a old activity
+			set.AdjustReward(index, 0, 1)
+		}
+	case R_FINISH:
+		//I don't want to finish
+		set.AdjustReward(index, -1, 1)
+	case R_NOCHANGE:
+		set.AdjustReward(index, 0, 1)
+	case R_ERR:
+		set.AdjustReward(index, 1, 1)
+	case R_CHANGE:
+		set.AdjustReward(index, 1, 1)
+	default:
+		log.Fatalln("Result is unknown, err")
 	}
 }

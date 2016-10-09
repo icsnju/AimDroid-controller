@@ -12,10 +12,11 @@ type Configure struct {
 	SDKPath      string
 }
 
-var configPath = "configure.json"
+var configPath = "config/configure.json"
 var configuration *Configure = &Configure{}
 
 func InitConfig() {
+	log.Println("Init configuration..")
 	content, err := ioutil.ReadFile(configPath)
 	if err != nil {
 		log.Fatalln(err)

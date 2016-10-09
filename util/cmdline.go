@@ -20,7 +20,7 @@ func ExeCmd(cmd string) (string, error) {
 
 //Execute cmdline
 func CreateCmd(cmd string) *exec.Cmd {
-	log.Println("command is ", cmd)
+	//log.Println("command is ", cmd)
 	// splitting head => g++ parts => rest of the command
 	parts := strings.Fields(cmd)
 	head := parts[0]

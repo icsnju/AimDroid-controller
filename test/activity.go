@@ -1,7 +1,6 @@
-package android
+package test
 
 import (
-	"log"
 	"strconv"
 	"sync"
 )
@@ -34,7 +33,7 @@ func NewQueue() *ActivityQueue {
 	return &ActivityQueue{make([]*Activity, 0), make(map[string]int), "", new(sync.Mutex)}
 }
 
-func (this *ActivityQueue) Enqueue(name, intent string) {
+func (this *ActivityQueue) Enqueue(name, intent string) bool {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 	_, ex := this.set[name]
@@ -43,8 +42,8 @@ func (this *ActivityQueue) Enqueue(name, intent string) {
 		a := &Activity{}
 		a.Set(name, intent)
 		this.queue = append(this.queue, a)
-		log.Println("[Find]", name)
 	}
+	return !ex
 }
 
 func (this *ActivityQueue) Dequeue() *Activity {

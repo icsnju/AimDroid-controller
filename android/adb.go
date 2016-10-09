@@ -2,46 +2,42 @@ package android
 
 import (
 	"bufio"
+	"log"
 	"monidroid/util"
 	"os"
 	"path"
+	"strings"
 )
 
-const (
-	LOG_START  = "start"
-	LOG_CREATE = "create"
-	LOG_FINISH = "finish"
-)
+var adb string = "adb"
 
 //Launch an application
-func LaunchApp(sdk, pck, act string) error {
-	adb := GetADBPath(sdk)
+func LaunchApp(pck, act string) error {
 	cmd := adb + " shell am start -n " + pck + "/" + act
 	_, err := util.ExeCmd(cmd)
 	return err
 }
 
 //Kill an application
-func KillApp(sdk, pck string) error {
-	adb := GetADBPath(sdk)
+func KillApp(pck string) error {
 	cmd := adb + " shell am force-stop " + pck
 	_, err := util.ExeCmd(cmd)
 	return err
 }
 
-func GetADBPath(sdk string) string {
-	return path.Join(sdk, "platform-tools/adb")
+func InitADB(sdk string) {
+	adb = path.Join(sdk, "platform-tools/adb")
 }
 
 //start logcat
-func StartLogcat(sdk string) (*bufio.Reader, error) {
+func StartLogcat() (*bufio.Reader, error) {
 
-	_, err := util.ExeCmd(GetADBPath(sdk) + " logcat -c")
+	_, err := util.ExeCmd(adb + " logcat -c")
 	if err != nil {
 		return nil, err
 	}
 
-	cmd := util.CreateCmd(GetADBPath(sdk) + " logcat Monitor_Log:V *:E")
+	cmd := util.CreateCmd(adb + " logcat Monitor_Log:V *:E")
 
 	// Create stdout, stderr streams of type io.Reader
 	stdout, err := cmd.StdoutPipe()
@@ -59,9 +55,9 @@ func StartLogcat(sdk string) (*bufio.Reader, error) {
 }
 
 //push file to the device
-func PushFile(sdk, src, dst string) error {
-	if _, err := os.Stat(sdk); err == nil {
-		cmd := GetADBPath(sdk) + " push " + src + " " + dst
+func PushFile(src, dst string) error {
+	if _, err := os.Stat(src); err == nil {
+		cmd := adb + " push " + src + " " + dst
 		_, err = util.ExeCmd(cmd)
 		return err
 	} else {
@@ -70,14 +66,14 @@ func PushFile(sdk, src, dst string) error {
 }
 
 //remove file from the device
-func RemoveFile(sdk, dst string) error {
-	cmd := GetADBPath(sdk) + " shell rm " + dst
+func RemoveFile(dst string) error {
+	cmd := adb + " shell rm " + dst
 	_, err := util.ExeCmd(cmd)
 	return err
 }
 
-func StartMonkey(sdk, pkg string) (string, error) {
-	cmd := GetADBPath(sdk) + " shell monkey --pct-touch 100 --throttle 300 -v 500"
+func StartMonkey(pkg string) (string, error) {
+	cmd := adb + " shell monkey --pct-touch 100 --throttle 300 -v 500"
 	//cmd := GetADBPath(sdk) + " shell monkey --pct-touch 80 --pct-trackball 20 --throttle 300 --uiautomator -v 1000"
 	//cmd := GetADBPath(sdk) + " shell monkey --throttle 300 --uiautomator-dfs -v 100"
 
@@ -87,15 +83,45 @@ func StartMonkey(sdk, pkg string) (string, error) {
 	//return "", nil
 }
 
-func StartApe(sdk, port string) {
-	cmd := GetADBPath(sdk) + " shell monkey --port " + port
-	_, err := util.ExeCmd(cmd)
-	util.FatalCheck(err)
+func StartApe(port string) error {
+	cmd := adb + " shell monkey --ignore-crashes --port " + port
+	out, err := util.ExeCmd(cmd)
+	log.Println(out, err)
+	return err
 }
 
 //adb forward
-func Forward(sdk, pcPort, mobilePort string) error {
-	cmd := GetADBPath(sdk) + " forward tcp:" + pcPort + " tcp:" + mobilePort
+func Forward(pcPort, mobilePort string) error {
+	cmd := adb + " forward tcp:" + pcPort + " tcp:" + mobilePort
 	_, err := util.ExeCmd(cmd)
 	return err
+}
+
+//get current focused activity
+func GetCurrentActivity() string {
+	name := ""
+	cmd := adb + " shell dumpsys activity activities | grep mFocusedActivity"
+	out, err := util.ExeCmd(cmd)
+	if err != nil {
+		log.Println("Cannot get current activity!", err)
+		return name
+	}
+	iterms := strings.Split(out, " ")
+	for i, iterm := range iterms {
+		if iterm == "u0" {
+			i++
+			if i < len(iterms) {
+				name = iterms[i]
+			}
+			break
+		}
+	}
+	//log.Println(name)
+	if len(name) > 0 {
+		names := strings.Split(name, "/")
+		if len(names) == 2 {
+			name = names[1]
+		}
+	}
+	return name
 }

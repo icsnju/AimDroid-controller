@@ -49,7 +49,7 @@ func Start(a, g *net.TCPConn) {
 
 	//It is first time to launch this app
 	android.LaunchApp(config.GetPackageName(), config.GetMainActivity())
-	time.Sleep(time.Millisecond * 1000)
+	time.Sleep(time.Millisecond * 3000)
 
 	//Get currently focused activity
 	root := android.GetCurrentActivity()
@@ -84,10 +84,8 @@ func Start(a, g *net.TCPConn) {
 		//Step2: generate initial actions set
 		mTest.Cache.clear()
 		sendCommandToApe(APE_TREE)
-		for i := 0; i < 3; i++ {
-			time.Sleep(time.Millisecond * 2000)
-			mTest.Cache.filterAction(mTest.ActSet)
-		}
+		time.Sleep(time.Millisecond * 1000)
+		mTest.Cache.filterAction(mTest.ActSet)
 
 		if mTest.ActSet.GetCount() <= 0 {
 			log.Println("2.No acion is found!")
@@ -102,9 +100,10 @@ func Start(a, g *net.TCPConn) {
 			//clear log
 			mTest.Cache.clear()
 			//get an action
-			action, index := mTest.ActSet.GetMaxRewardAction()
+			action, index := mTest.ActSet.GetEpGreAction()
 			if action == nil {
 				log.Fatalln("No action found!")
+				break
 			}
 			//send action
 			sendActionToApe(action)
@@ -117,9 +116,9 @@ func Start(a, g *net.TCPConn) {
 			rs := mTest.Cache.filterResult()
 
 			//if nothing change
-			if rs.GetKind() == R_NOCHANGE && !isOut {
+			if rs.GetKind() == R_CHANGE && !isOut {
 				sendCommandToApe(APE_TREE)
-				time.Sleep(time.Millisecond * 1000)
+				time.Sleep(time.Millisecond * 500)
 				count := mTest.Cache.filterAction(mTest.ActSet)
 				if count > 3 {
 					cr, ok := rs.(*CommonResult)
@@ -130,6 +129,7 @@ func Start(a, g *net.TCPConn) {
 				}
 			}
 			//Adjust reward of this action
+			log.Println("Result: ", rs.ToString(), rs.GetKind())
 			Reward(mTest.ActSet, index, rs)
 			sequence.add(index, rs)
 
@@ -144,6 +144,10 @@ func Start(a, g *net.TCPConn) {
 				}
 			}
 		} //finish send action
+
+		if sequence.getCount() > 0 {
+			mTest.SequenceArray = append(mTest.SequenceArray, sequence)
+		}
 
 		//log.Println("[Monkey]", out)
 		if mTest != nil {
@@ -168,7 +172,7 @@ func startThisActivity(name, intent string) bool {
 	setKey(FALSE, name, intent)
 	//launch app
 	android.LaunchApp(config.GetPackageName(), config.GetMainActivity())
-	time.Sleep(time.Millisecond * 1000)
+	time.Sleep(time.Millisecond * 3000)
 	//set the key
 	setKey(TRUE, name, intent)
 	return currentActIsRight(name)
@@ -177,6 +181,15 @@ func startThisActivity(name, intent string) bool {
 //If this current focused activity is right
 func currentActIsRight(name string) bool {
 	cn := android.GetCurrentActivity()
+	count := 0
+	for name != cn {
+		count++
+		if count > MAX_TRY {
+			break
+		}
+		time.Sleep(time.Millisecond * 1000)
+		cn = android.GetCurrentActivity()
+	}
 	return name == cn
 }
 
@@ -251,7 +264,7 @@ func Reward(set *ActionSet, index int, result Result) {
 
 			//Reward my siblings
 			set.AdjustReward(index+1, 1, 0)
-			set.AdjustReward(index+1, 1, 0)
+			set.AdjustReward(index-1, 1, 0)
 		} else {
 			//It is a old activity
 			set.AdjustReward(index, 0, 1)

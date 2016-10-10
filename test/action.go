@@ -65,7 +65,7 @@ func (this *ActionSet) AddAction(action *Action) bool {
 
 //Adjust reward of an action
 func (this *ActionSet) AdjustReward(index int, reward float32, count int) {
-	index = index % len(this.queue)
+	index = (index + len(this.queue)) % len(this.queue)
 	action := this.queue[index]
 	action.adjustReward(reward, count)
 }
@@ -108,23 +108,23 @@ func (this *ActionSet) GetMaxRewardAction() (*Action, int) {
 }
 
 //Get an action from the set randomly
-func (this *ActionSet) GetRandomAction() *Action {
+func (this *ActionSet) GetRandomAction() (*Action, int) {
 	l := len(this.queue)
 	if l <= 0 {
 		log.Println("This action set has no action!")
-		return nil
+		return nil, 0
 	}
 
 	if l == 1 {
-		return this.queue[0]
+		return this.queue[0], 0
 	}
 
 	index := rand.Intn(l)
-	return this.queue[index]
+	return this.queue[index], index
 }
 
 //Get an action based on epsilon-greedy algorithm
-func (this *ActionSet) GetEpGreAction() *Action {
+func (this *ActionSet) GetEpGreAction() (*Action, int) {
 	x := rand.Float32()
 	if x < config.GetEpsilon() {
 		return this.GetRandomAction()
@@ -151,4 +151,8 @@ func (this *ActionSequence) add(index int, result Result) {
 		this.tag[this.count] = result
 	}
 	this.count++
+}
+
+func (this *ActionSequence) getCount() int {
+	return len(this.sequence)
 }

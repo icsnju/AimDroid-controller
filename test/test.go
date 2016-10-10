@@ -8,7 +8,10 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 )
+
+const MAX_TRY = 4
 
 type Test struct {
 	Act           *Activity
@@ -30,7 +33,7 @@ func NewTest() *Test {
 func (this *Test) Save(out string) {
 	mDir := path.Join(out, this.Act.GetName())
 	if _, err := os.Stat(mDir); os.IsNotExist(err) {
-		os.MkdirAll(mDir, os.ModeDir)
+		os.MkdirAll(mDir, os.ModePerm)
 	}
 
 	//save activity
@@ -55,7 +58,7 @@ func (this *Test) Save(out string) {
 
 	seqsDir := path.Join(mDir, "Sequences")
 	if _, err := os.Stat(seqsDir); os.IsNotExist(err) {
-		os.MkdirAll(mDir, os.ModeDir)
+		os.MkdirAll(seqsDir, os.ModePerm)
 	}
 
 	//save sequences
@@ -68,8 +71,9 @@ func (this *Test) Save(out string) {
 			fs.WriteString(action.getContent())
 			rs, ex := seq.tag[j]
 			if ex {
-				fs.WriteString(" " + rs.ToString() + "\n")
+				fs.WriteString(" " + rs.ToString())
 			}
+			fs.WriteString("\n")
 		}
 		fs.Close()
 	}
@@ -101,20 +105,32 @@ func (this *LogCache) clear() {
 //Filter out actions from the logs
 func (this *LogCache) filterAction(set *ActionSet) int {
 	count := 0
-	this.lock.Lock()
-	defer this.lock.Unlock()
-	for _, line := range this.logs {
-		iterms := strings.Split(string(line), "@")
-		if len(iterms) >= 3 && iterms[1] == LOG_ACTION {
-			a := NewAction(iterms[2])
-			ok := set.AddAction(a)
-			if ok {
-				count++
+	goon := 0
+	for {
+		this.lock.Lock()
+		goon++
+		for _, line := range this.logs {
+			iterms := strings.Split(line, "@")
+			if len(iterms) >= 3 && iterms[1] == LOG_ACTION {
+				if LOG_ACTION_END == iterms[2] {
+					goon = MAX_TRY
+					break
+				}
+				a := NewAction(iterms[2])
+				ok := set.AddAction(a)
+				if ok {
+					count++
+				}
 			}
 		}
+		//clear the log cache
+		this.logs = make([]string, 0)
+		this.lock.Unlock()
+		if goon >= MAX_TRY {
+			break
+		}
+		time.Sleep(500 * time.Millisecond)
 	}
-	//clear the log cache
-	this.logs = make([]string, 0)
 	return count
 }
 
@@ -153,21 +169,26 @@ func (this *LogCache) filterResult() Result {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 	var result Result
-	level := LEVEL_ZERO
+	level := R_NOCHANGE
 
 	for _, line := range this.logs {
 		iterms := strings.Split(string(line), "@")
 		if len(iterms) >= 2 {
 			switch iterms[1] {
 			case LOG_START:
-				if len(iterms) >= 4 && LEVEL_START >= level {
+				if len(iterms) >= 4 && R_ACTIVITY >= level {
 					result = &ActivityResult{CommonResult{R_ACTIVITY}, iterms[2], iterms[3]}
-					level = LEVEL_START
+					level = R_ACTIVITY
 				}
 			case LOG_FINISH:
-				if LEVEL_FINISH >= level {
+				if R_FINISH >= level {
 					result = &CommonResult{R_FINISH}
-					level = LEVEL_FINISH
+					level = R_FINISH
+				}
+			case LOG_CHANGE:
+				if R_CHANGE >= level {
+					result = &CommonResult{R_CHANGE}
+					level = R_CHANGE
 				}
 			default:
 				log.Println("Unknown result:", line)
@@ -178,7 +199,7 @@ func (this *LogCache) filterResult() Result {
 	}
 	//clear the log cache
 	this.logs = make([]string, 0)
-	if level == LEVEL_ZERO {
+	if level == R_NOCHANGE {
 		result = &CommonResult{R_NOCHANGE}
 	}
 	return result

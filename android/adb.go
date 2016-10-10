@@ -86,7 +86,7 @@ func StartMonkey(pkg string) (string, error) {
 func StartApe(port string) error {
 	cmd := adb + " shell monkey --ignore-crashes --port " + port
 	out, err := util.ExeCmd(cmd)
-	log.Println(out, err)
+	log.Println(out)
 	return err
 }
 

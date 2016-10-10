@@ -9,14 +9,12 @@ const (
 )
 
 const (
-	LOG_START  = "start"
-	LOG_FINISH = "finish"
-	LOG_ACTION = "action"
-	LOG_SIZE   = "size"
-
-	LEVEL_ZERO   = 0
-	LEVEL_FINISH = 1
-	LEVEL_START  = 2
+	LOG_START      = "start"
+	LOG_FINISH     = "finish"
+	LOG_CHANGE     = "change"
+	LOG_ACTION     = "action"
+	LOG_ACTION_END = "end"
+	LOG_SIZE       = "size"
 )
 
 type Result interface {
@@ -33,7 +31,7 @@ func (this *CommonResult) GetKind() int {
 }
 
 func (this *CommonResult) ToString() string {
-	return ""
+	return "common result"
 }
 
 func (this *CommonResult) SetKind(k int) {

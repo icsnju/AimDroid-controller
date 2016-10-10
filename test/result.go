@@ -21,14 +21,19 @@ const (
 
 type Result interface {
 	GetKind() int
+	ToString() string
 }
 
 type CommonResult struct {
 	kind int
 }
 
-func (cr CommonResult) GetKind() int {
-	return cr.kind
+func (this *CommonResult) GetKind() int {
+	return this.kind
+}
+
+func (this *CommonResult) ToString() string {
+	return ""
 }
 
 func (this *CommonResult) SetKind(k int) {
@@ -39,6 +44,10 @@ type ActivityResult struct {
 	CommonResult
 	name   string
 	intent string
+}
+
+func (this *ActivityResult) ToString() string {
+	return "activity[" + this.name + "][" + this.intent + "]"
 }
 
 func (this *ActivityResult) GetContent() (string, string) {
@@ -52,4 +61,8 @@ type ErrResult struct {
 
 func (this *ErrResult) GetContent() string {
 	return this.content
+}
+
+func (this *ErrResult) ToString() string {
+	return "err[" + this.content + "]"
 }

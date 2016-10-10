@@ -1,3 +1,5 @@
 monidroid
 target.txt
 pkg.txt
+.DS_Store
+out/

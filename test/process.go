@@ -53,6 +53,7 @@ func Start(a, g *net.TCPConn) {
 
 	//Get currently focused activity
 	root := android.GetCurrentActivity()
+	//Create the first activity
 	gActivityQueue.Enqueue(root, "")
 
 	//Get an activity to test
@@ -61,6 +62,7 @@ func Start(a, g *net.TCPConn) {
 		//Step1: get an activity to start
 		act := gActivityQueue.Dequeue()
 		name, intent := act.Get()
+
 		//Test record the testing state
 		mTest = NewTest()
 		mTest.Act = act
@@ -70,22 +72,19 @@ func Start(a, g *net.TCPConn) {
 			//set the key
 			setKey(TRUE, name, intent)
 		} else {
-			//kill this app started last time
-			android.KillApp(config.GetPackageName())
-			//reset the key
-			setKey(FALSE, name, intent)
-			//launch app
-			android.LaunchApp(config.GetPackageName(), config.GetMainActivity())
-			time.Sleep(time.Millisecond * 1000)
-			//set the key
-			setKey(TRUE, name, intent)
+			startThisActivity(name, intent)
 		}
 		log.Println("1. Start activity to generate actions..", act.name)
 
+		if !currentActIsRight(name) {
+			//In a wrong activity
+			log.Println("You are in a wrong activity", android.GetCurrentActivity())
+			continue
+		}
 		//Step2: generate initial actions set
 		mTest.Cache.clear()
+		sendCommandToApe(APE_TREE)
 		for i := 0; i < 3; i++ {
-			sendCommandToApe(APE_TREE)
 			time.Sleep(time.Millisecond * 2000)
 			mTest.Cache.filterAction(mTest.ActSet)
 		}
@@ -97,7 +96,7 @@ func Start(a, g *net.TCPConn) {
 		log.Println("2. Initial actions count:", mTest.ActSet.GetCount(), ", start to test activity..")
 
 		//Step3: send event
-		log.Println("3.Start send action")
+		log.Println("3. Start send action")
 		sequence := NewActionSequence()
 		for i := 0; i < 2*mTest.ActSet.GetCount(); i++ {
 			//clear log
@@ -110,11 +109,15 @@ func Start(a, g *net.TCPConn) {
 			//send action
 			sendActionToApe(action)
 			time.Sleep(time.Millisecond * 500)
+
+			//if it go out of the target activity
+			isOut := !currentActIsRight(name)
+
 			//get result
 			rs := mTest.Cache.filterResult()
 
 			//if nothing change
-			if rs.GetKind() == R_NOCHANGE {
+			if rs.GetKind() == R_NOCHANGE && !isOut {
 				sendCommandToApe(APE_TREE)
 				time.Sleep(time.Millisecond * 1000)
 				count := mTest.Cache.filterAction(mTest.ActSet)
@@ -126,11 +129,26 @@ func Start(a, g *net.TCPConn) {
 					}
 				}
 			}
+			//Adjust reward of this action
 			Reward(mTest.ActSet, index, rs)
 			sequence.add(index, rs)
-		}
+
+			if isOut {
+				//Save this sequence
+				mTest.SequenceArray = append(mTest.SequenceArray, sequence)
+				sequence = NewActionSequence()
+				//Restart this activity
+				ok := startThisActivity(name, intent)
+				if !ok {
+					break
+				}
+			}
+		} //finish send action
 
 		//log.Println("[Monkey]", out)
+		if mTest != nil {
+			mTest.Save("out/" + config.GetPackageName())
+		}
 	}
 
 	//clear the key
@@ -142,6 +160,27 @@ func Start(a, g *net.TCPConn) {
 	log.Println(gActivityQueue.ToString())
 }
 
+//Start an activity
+func startThisActivity(name, intent string) bool {
+	//kill this app started last time
+	android.KillApp(config.GetPackageName())
+	//reset the key
+	setKey(FALSE, name, intent)
+	//launch app
+	android.LaunchApp(config.GetPackageName(), config.GetMainActivity())
+	time.Sleep(time.Millisecond * 1000)
+	//set the key
+	setKey(TRUE, name, intent)
+	return currentActIsRight(name)
+}
+
+//If this current focused activity is right
+func currentActIsRight(name string) bool {
+	cn := android.GetCurrentActivity()
+	return name == cn
+}
+
+//Set the key of guider
 func setKey(block, target, intent string) {
 	//set key
 	guider.SetWriteDeadline(time.Now().Add(time.Minute))
@@ -168,6 +207,7 @@ func sendCommandToApe(cmd string) {
 }
 
 func sendActionToApe(a *Action) {
+	log.Println("Send action: ", a.getContent())
 	ape.SetWriteDeadline(time.Now().Add(time.Minute))
 	_, err := ape.Write([]byte(a.getContent() + "\n"))
 	util.FatalCheck(err)

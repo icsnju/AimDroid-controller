@@ -3,6 +3,7 @@ package test
 import (
 	"log"
 	"math/rand"
+	"monidroid/config"
 	"time"
 )
 
@@ -122,6 +123,16 @@ func (this *ActionSet) GetRandomAction() *Action {
 	return this.queue[index]
 }
 
+//Get an action based on epsilon-greedy algorithm
+func (this *ActionSet) GetEpGreAction() *Action {
+	x := rand.Float32()
+	if x < config.GetEpsilon() {
+		return this.GetRandomAction()
+	} else {
+		return this.GetMaxRewardAction()
+	}
+}
+
 type ActionSequence struct {
 	sequence []int
 	tag      map[int]Result
@@ -136,7 +147,7 @@ func (this *ActionSequence) add(index int, result Result) {
 	this.sequence = append(this.sequence, index)
 	kind := result.GetKind()
 
-	if kind != R_FINISH && kind != R_NOCHANGE {
+	if kind >= R_ACTIVITY {
 		this.tag[this.count] = result
 	}
 	this.count++

@@ -2,26 +2,78 @@ package test
 
 import (
 	"log"
+	"monidroid/util"
+	"os"
+	"path"
 	"strconv"
 	"strings"
 	"sync"
 )
 
 type Test struct {
-	Act            *Activity
-	ActSet         *ActionSet
-	SequenceArray  []ActionSequence
-	currentFocused string
-	Cache          *LogCache
+	Act           *Activity
+	ActSet        *ActionSet
+	SequenceArray []*ActionSequence
+	Cache         *LogCache
 }
 
 func NewTest() *Test {
 	t := new(Test)
 	t.Act = nil
 	t.ActSet = NewActionSet()
-	t.currentFocused = ""
 	t.Cache = NewLogCache()
+	t.SequenceArray = make([]*ActionSequence, 0)
 	return t
+}
+
+//Save test into a file
+func (this *Test) Save(out string) {
+	mDir := path.Join(out, this.Act.GetName())
+	if _, err := os.Stat(mDir); os.IsNotExist(err) {
+		os.MkdirAll(mDir, os.ModeDir)
+	}
+
+	//save activity
+	actFile := path.Join(mDir, "activity.txt")
+	fs, err := os.OpenFile(actFile, os.O_CREATE|os.O_RDWR, os.ModePerm)
+	util.FatalCheck(err)
+
+	name, intent := this.Act.Get()
+	fs.WriteString(name + "\n")
+	fs.WriteString(intent + "\n")
+	fs.Close()
+
+	//save actions
+	actionFile := path.Join(mDir, "actions.txt")
+	fs, err = os.OpenFile(actionFile, os.O_CREATE|os.O_RDWR, os.ModePerm)
+	util.FatalCheck(err)
+	queue := this.ActSet.queue
+	for _, action := range queue {
+		fs.WriteString(action.getContent() + "\n")
+	}
+	fs.Close()
+
+	seqsDir := path.Join(mDir, "Sequences")
+	if _, err := os.Stat(seqsDir); os.IsNotExist(err) {
+		os.MkdirAll(mDir, os.ModeDir)
+	}
+
+	//save sequences
+	for i, seq := range this.SequenceArray {
+		seqFile := path.Join(seqsDir, strconv.Itoa(i)+".txt")
+		fs, err = os.OpenFile(seqFile, os.O_CREATE|os.O_RDWR, os.ModePerm)
+		util.FatalCheck(err)
+		for j, ai := range seq.sequence {
+			action := queue[ai]
+			fs.WriteString(action.getContent())
+			rs, ex := seq.tag[j]
+			if ex {
+				fs.WriteString(" " + rs.ToString() + "\n")
+			}
+		}
+		fs.Close()
+	}
+
 }
 
 //Put device log into this cache

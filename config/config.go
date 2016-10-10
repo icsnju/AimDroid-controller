@@ -10,6 +10,7 @@ type Configure struct {
 	PackageName  string
 	MainActivity string
 	SDKPath      string
+	Epsilon      float32
 }
 
 var configPath = "config/configure.json"
@@ -42,4 +43,8 @@ func GetMainActivity() string {
 
 func GetSDKPath() string {
 	return configuration.SDKPath
+}
+
+func GetEpsilon() float32 {
+	return configuration.Epsilon
 }

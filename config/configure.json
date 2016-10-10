@@ -1,5 +1,6 @@
 {
 	"PackageName":"com.chuanwg.chuanwugong",
 	"MainActivity":"com.chuanwg.ui.activity.GuiderActivity",
-	"SDKPath":"/Users/Tianchi/Tool/sdk"
+	"SDKPath":"/Users/Tianchi/Tool/sdk",
+	"Epsilon":0.2
 }

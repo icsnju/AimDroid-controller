@@ -21,6 +21,11 @@ func (this *Activity) Get() (string, string) {
 	return this.name, this.intent
 }
 
+//Get the Activity name
+func (this *Activity) GetName() string {
+	return this.name
+}
+
 //Activity Queue
 type ActivityQueue struct {
 	queue   []*Activity

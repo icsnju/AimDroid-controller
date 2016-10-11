@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-const MAX_TRY = 4
+const MAX_TRY = 5
 
 type Test struct {
 	Act           *Activity
@@ -52,7 +52,7 @@ func (this *Test) Save(out string) {
 	util.FatalCheck(err)
 	queue := this.ActSet.queue
 	for _, action := range queue {
-		fs.WriteString(action.getContent() + "\n")
+		fs.WriteString(action.getContent() + "\t" + strconv.Itoa(action.count) + "\t" + strconv.FormatFloat(action.reward, 'f', 4, 64) + "\n")
 	}
 	fs.Close()
 

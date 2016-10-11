@@ -9,7 +9,7 @@ import (
 
 type Action struct {
 	content string
-	reward  float32
+	reward  float64
 	count   int
 }
 
@@ -18,14 +18,16 @@ func NewAction(content string) *Action {
 	return &Action{content, 1, 1}
 }
 
-func (this *Action) adjustReward(r float32, c int) {
-	sum := float32(this.count) * this.reward
-	sum += r
+func (this *Action) adjustReward(r float64, c int) {
 	if c < 0 {
 		c = 0
 	}
 	this.count = this.count + c
-	this.reward = sum / float32(this.count)
+	this.reward += r
+}
+
+func (this *Action) getAveReward() float64 {
+	return this.reward / float64(this.count)
 }
 
 func (this *Action) getContent() string {
@@ -64,7 +66,7 @@ func (this *ActionSet) AddAction(action *Action) bool {
 }
 
 //Adjust reward of an action
-func (this *ActionSet) AdjustReward(index int, reward float32, count int) {
+func (this *ActionSet) AdjustReward(index int, reward float64, count int) {
 	index = (index + len(this.queue)) % len(this.queue)
 	action := this.queue[index]
 	action.adjustReward(reward, count)
@@ -79,9 +81,9 @@ func (this *ActionSet) GetMaxRewardAction() (*Action, int) {
 
 	//find the candidates
 	var indexSet []int = make([]int, 0)
-	var maxReward float32 = this.queue[0].reward
+	var maxReward float64 = this.queue[0].getAveReward()
 	for index, action := range this.queue {
-		re := action.reward
+		re := action.getAveReward()
 		if re == maxReward {
 			indexSet = append(indexSet, index)
 		} else if re > maxReward {
@@ -103,7 +105,8 @@ func (this *ActionSet) GetMaxRewardAction() (*Action, int) {
 	}
 
 	rand.Seed(time.Now().UnixNano())
-	index := rand.Intn(len(indexSet))
+	i := rand.Intn(len(indexSet))
+	index := indexSet[i]
 	return this.queue[index], index
 }
 

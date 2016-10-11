@@ -20,6 +20,8 @@ const (
 
 	APE_TREE = "tree"
 	APE_SIZE = "size"
+
+	MAX_SEQ = 50
 )
 
 var gActivityQueue *ActivityQueue = nil
@@ -95,58 +97,68 @@ func Start(a, g *net.TCPConn) {
 
 		//Step3: send event
 		log.Println("3. Start send action")
-		sequence := NewActionSequence()
-		for i := 0; i < 2*mTest.ActSet.GetCount(); i++ {
-			//clear log
-			mTest.Cache.clear()
-			//get an action
-			action, index := mTest.ActSet.GetEpGreAction()
-			if action == nil {
-				log.Fatalln("No action found!")
-				break
-			}
-			//send action
-			sendActionToApe(action)
-			time.Sleep(time.Millisecond * 500)
+		times := 1
+		for times > 0 {
+			times = 0
+			sequence := NewActionSequence()
+			for i := 0; i < mTest.ActSet.GetCount(); i++ {
+				//clear log
+				mTest.Cache.clear()
+				//get an action
+				action, index := mTest.ActSet.GetEpGreAction()
+				if action == nil {
+					log.Fatalln("No action found!")
+					break
+				}
+				//send action
+				mTest.Cache.clear()
+				sendActionToApe(action)
+				time.Sleep(time.Millisecond * 1000)
 
-			//if it go out of the target activity
-			isOut := !currentActIsRight(name)
+				//if it go out of the target activity
+				isOut := !currentActIsRight(name)
 
-			//get result
-			rs := mTest.Cache.filterResult()
+				//get result
+				rs := mTest.Cache.filterResult()
 
-			//if nothing change
-			if rs.GetKind() == R_CHANGE && !isOut {
-				sendCommandToApe(APE_TREE)
-				time.Sleep(time.Millisecond * 500)
-				count := mTest.Cache.filterAction(mTest.ActSet)
-				if count > 3 {
-					cr, ok := rs.(*CommonResult)
-					if ok {
-						cr.SetKind(R_CHANGE)
-						rs = cr
+				//if nothing change
+				if rs.GetKind() == R_CHANGE && !isOut {
+					mTest.Cache.clear()
+					sendCommandToApe(APE_TREE)
+					time.Sleep(time.Millisecond * 1000)
+					count := mTest.Cache.filterAction(mTest.ActSet)
+					//Little views change, so it is unchanged
+					if count < 3 {
+						cr, ok := rs.(*CommonResult)
+						if ok {
+							cr.SetKind(R_NOCHANGE)
+							rs = cr
+						}
 					}
 				}
-			}
-			//Adjust reward of this action
-			log.Println("Result: ", rs.ToString(), rs.GetKind())
-			Reward(mTest.ActSet, index, rs)
-			sequence.add(index, rs)
 
-			if isOut {
-				//Save this sequence
+				//Step4. Adjust reward of this action
+				log.Println("Adjust reward of this action: ", rs.ToString(), rs.GetKind())
+				feedback := Reward(mTest.ActSet, index, rs)
+				times += feedback
+
+				sequence.add(index, rs)
+
+				if isOut {
+					break
+				}
+			} //finish send action
+
+			if sequence.getCount() > 0 {
 				mTest.SequenceArray = append(mTest.SequenceArray, sequence)
-				sequence = NewActionSequence()
-				//Restart this activity
+			}
+			//Restart this activity
+			if times > 0 {
 				ok := startThisActivity(name, intent)
 				if !ok {
 					break
 				}
 			}
-		} //finish send action
-
-		if sequence.getCount() > 0 {
-			mTest.SequenceArray = append(mTest.SequenceArray, sequence)
 		}
 
 		//log.Println("[Monkey]", out)
@@ -170,12 +182,14 @@ func startThisActivity(name, intent string) bool {
 	android.KillApp(config.GetPackageName())
 	//reset the key
 	setKey(FALSE, name, intent)
+	time.Sleep(time.Millisecond * 1000)
 	//launch app
 	android.LaunchApp(config.GetPackageName(), config.GetMainActivity())
-	time.Sleep(time.Millisecond * 3000)
+	time.Sleep(time.Millisecond * 2000)
+	ok := currentActIsRight(name)
 	//set the key
 	setKey(TRUE, name, intent)
-	return currentActIsRight(name)
+	return ok
 }
 
 //If this current focused activity is right
@@ -220,7 +234,7 @@ func sendCommandToApe(cmd string) {
 }
 
 func sendActionToApe(a *Action) {
-	log.Println("Send action: ", a.getContent())
+	log.Println("Send action: ", a.getContent(), a.getAveReward())
 	ape.SetWriteDeadline(time.Now().Add(time.Minute))
 	_, err := ape.Write([]byte(a.getContent() + "\n"))
 	util.FatalCheck(err)
@@ -247,9 +261,10 @@ func startObserver() {
 }
 
 //Adjust reward of this action
-func Reward(set *ActionSet, index int, result Result) {
+func Reward(set *ActionSet, index int, result Result) int {
 	kind := result.GetKind()
 
+	feedback := 0
 	switch kind {
 	case R_ACTIVITY:
 		actRs, ok := result.(*ActivityResult)
@@ -265,6 +280,7 @@ func Reward(set *ActionSet, index int, result Result) {
 			//Reward my siblings
 			set.AdjustReward(index+1, 1, 0)
 			set.AdjustReward(index-1, 1, 0)
+			feedback = 1
 		} else {
 			//It is a old activity
 			set.AdjustReward(index, 0, 1)
@@ -276,9 +292,11 @@ func Reward(set *ActionSet, index int, result Result) {
 		set.AdjustReward(index, 0, 1)
 	case R_ERR:
 		set.AdjustReward(index, 1, 1)
+		feedback = 1
 	case R_CHANGE:
 		set.AdjustReward(index, 1, 1)
 	default:
 		log.Fatalln("Result is unknown, err")
 	}
+	return feedback
 }

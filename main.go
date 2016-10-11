@@ -24,6 +24,7 @@ const (
 
 func main() {
 
+	t1 := time.Now()
 	//init configuration
 	config.InitConfig()
 	android.InitADB(config.GetSDKPath())
@@ -38,6 +39,8 @@ func main() {
 
 	//start test
 	test.Start(ape, guider)
+	t2 := time.Now()
+	log.Println(t2.Sub(t1).Seconds())
 }
 
 //Start ape server

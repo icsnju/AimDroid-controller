@@ -98,6 +98,7 @@ func Start(a, g *net.TCPConn) {
 		//Step3: send event
 		log.Println("3. Start send action")
 		times := 1
+		shouldChange := 0
 		for times > 0 {
 			times = 0
 			sequence := NewActionSequence()
@@ -122,7 +123,8 @@ func Start(a, g *net.TCPConn) {
 				rs := mTest.Cache.filterResult()
 
 				//if nothing change
-				if rs.GetKind() == R_CHANGE && !isOut {
+				if rs.GetKind() == R_CHANGE && !isOut && shouldChange == 0 {
+					shouldChange = 1
 					mTest.Cache.clear()
 					sendCommandToApe(APE_TREE)
 					time.Sleep(time.Millisecond * 1000)
@@ -135,6 +137,8 @@ func Start(a, g *net.TCPConn) {
 							rs = cr
 						}
 					}
+				} else {
+					shouldChange = 0
 				}
 
 				//Step4. Adjust reward of this action
@@ -174,6 +178,7 @@ func Start(a, g *net.TCPConn) {
 	android.KillApp(config.GetPackageName())
 
 	log.Println(gActivityQueue.ToString())
+	gActivityQueue.Save("out/" + config.GetPackageName())
 }
 
 //Start an activity

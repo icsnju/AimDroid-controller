@@ -1,6 +1,9 @@
 package test
 
 import (
+	"monidroid/util"
+	"os"
+	"path"
 	"strconv"
 	"sync"
 )
@@ -28,14 +31,13 @@ func (this *Activity) GetName() string {
 
 //Activity Queue
 type ActivityQueue struct {
-	queue   []*Activity
-	set     map[string]int
-	focused string
-	lock    *sync.Mutex
+	queue []*Activity
+	set   map[string]int
+	lock  *sync.Mutex
 }
 
 func NewQueue() *ActivityQueue {
-	return &ActivityQueue{make([]*Activity, 0), make(map[string]int), "", new(sync.Mutex)}
+	return &ActivityQueue{make([]*Activity, 0), make(map[string]int), new(sync.Mutex)}
 }
 
 func (this *ActivityQueue) Enqueue(name, intent string) bool {
@@ -84,20 +86,24 @@ func (this *ActivityQueue) ToString() string {
 	return result
 }
 
-func (this *ActivityQueue) SetFocusedActivity(name string) {
-	this.lock.Lock()
-	defer this.lock.Unlock()
-	this.focused = name
-}
-
-func (this *ActivityQueue) GetFocusedActivity() string {
-	this.lock.Lock()
-	defer this.lock.Unlock()
-	return this.focused
-}
-
 func (this *ActivityQueue) AddActivityInSet(name string) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 	this.set[name] = 0
+}
+
+//Save queue in file
+func (this *ActivityQueue) Save(out string) {
+	if _, err := os.Stat(out); os.IsNotExist(err) {
+		os.MkdirAll(out, os.ModePerm)
+	}
+
+	queueFile := path.Join(out, "queue.txt")
+	fs, err := os.OpenFile(queueFile, os.O_CREATE|os.O_RDWR, os.ModePerm)
+	util.FatalCheck(err)
+	fs.WriteString("Find activity " + strconv.Itoa(len(this.set)) + ":\n")
+	for act, _ := range this.set {
+		fs.WriteString(act + "\n")
+	}
+	fs.Close()
 }

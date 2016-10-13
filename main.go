@@ -95,5 +95,5 @@ func closeApe(ape *net.TCPConn) {
 func closeGuider(guider *net.TCPConn) {
 	guider.Close()
 	//stop guider service
-	android.KillApp(GUIDER_PACKAGE_NAME)
+	android.ClearApp(GUIDER_PACKAGE_NAME)
 }

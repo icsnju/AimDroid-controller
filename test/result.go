@@ -1,14 +1,23 @@
 package test
 
+import (
+	"monidroid/util"
+	"os"
+	"path"
+	"strconv"
+)
+
 const (
 	R_NOCHANGE = iota
 	R_CHANGE   = iota
 	R_FINISH   = iota
 	R_ACTIVITY = iota
-	R_ERR      = iota
+	R_CRASH    = iota
 )
 
 const (
+	LOG_CRASH      = "crash"
+	LOG_CRASH_END  = "crashend"
 	LOG_START      = "start"
 	LOG_FINISH     = "finish"
 	LOG_CHANGE     = "change"
@@ -16,6 +25,8 @@ const (
 	LOG_ACTION_END = "end"
 	LOG_SIZE       = "size"
 )
+
+var crashIndex int = 0
 
 type Result interface {
 	GetKind() int
@@ -52,15 +63,41 @@ func (this *ActivityResult) GetContent() (string, string) {
 	return this.name, this.intent
 }
 
-type ErrResult struct {
+type CrashResult struct {
 	CommonResult
 	content string
+	index   int
 }
 
-func (this *ErrResult) GetContent() string {
+func NewCrashResult() *CrashResult {
+	c := new(CrashResult)
+	c.kind = R_CRASH
+	c.content = ""
+	c.index = crashIndex
+	crashIndex++
+	return c
+}
+
+func (this *CrashResult) GetContent() string {
 	return this.content
 }
 
-func (this *ErrResult) ToString() string {
-	return "err[" + this.content + "]"
+func (this *CrashResult) ToString() string {
+	return "Crash[" + strconv.Itoa(this.index) + "]"
+}
+
+func (this *CrashResult) AddLine(line string) {
+	this.content += line + "\n"
+}
+
+func (this *CrashResult) Save(out string) {
+	if _, err := os.Stat(out); os.IsNotExist(err) {
+		os.MkdirAll(out, os.ModePerm)
+	}
+
+	crashFile := path.Join(out, strconv.Itoa(this.index)+".txt")
+	fs, err := os.OpenFile(crashFile, os.O_CREATE|os.O_RDWR, os.ModePerm)
+	util.FatalCheck(err)
+	fs.WriteString(this.content)
+	fs.Close()
 }

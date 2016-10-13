@@ -61,6 +61,11 @@ func (this *Test) Save(out string) {
 		os.MkdirAll(seqsDir, os.ModePerm)
 	}
 
+	crashDir := path.Join(mDir, "Crash")
+	if _, err := os.Stat(crashDir); os.IsNotExist(err) {
+		os.MkdirAll(crashDir, os.ModePerm)
+	}
+
 	//save sequences
 	for i, seq := range this.SequenceArray {
 		seqFile := path.Join(seqsDir, strconv.Itoa(i)+".txt")
@@ -72,6 +77,10 @@ func (this *Test) Save(out string) {
 			rs, ex := seq.tag[j]
 			if ex {
 				fs.WriteString(" " + rs.ToString())
+				cr, ok := rs.(*CrashResult)
+				if ok {
+					cr.Save(crashDir)
+				}
 			}
 			fs.WriteString("\n")
 		}
@@ -166,12 +175,15 @@ func (this *LogCache) filterSize() (int, int) {
 
 //Filter out the results from the logs
 func (this *LogCache) filterResult() Result {
-	this.lock.Lock()
-	defer this.lock.Unlock()
+
 	var result Result
 	level := R_NOCHANGE
+	var rr *CrashResult = nil
+	isCrash := false
 
-	for _, line := range this.logs {
+	this.lock.Lock()
+
+	for i, line := range this.logs {
 		iterms := strings.Split(string(line), "@")
 		if len(iterms) >= 2 {
 			switch iterms[1] {
@@ -190,15 +202,53 @@ func (this *LogCache) filterResult() Result {
 					result = &CommonResult{R_CHANGE}
 					level = R_CHANGE
 				}
+			case LOG_CRASH:
+				if R_CRASH >= level {
+					level = R_CRASH
+					rr = NewCrashResult()
+					result = rr
+					isCrash = true
+					l := len(this.logs)
+					for j := i; j < l; j++ {
+						rr.AddLine(this.logs[j])
+						//Find the end of this crash
+						if this.logs[j] == LOG_CRASH_END {
+							isCrash = false
+							break
+						}
+					}
+					break
+				}
 			default:
 				log.Println("Unknown result:", line)
 			}
+
 		} else {
 			log.Println("Unknown result:", line)
 		}
 	}
 	//clear the log cache
 	this.logs = make([]string, 0)
+	this.lock.Unlock()
+
+	tryTimes := 0
+	if isCrash && tryTimes < MAX_TRY {
+		tryTimes++
+		//There some logs don't come
+		time.Sleep(time.Millisecond * 500)
+		this.lock.Lock()
+		for _, line := range this.logs {
+			rr.AddLine(line)
+			//Find the end of this crash
+			if line == LOG_CRASH_END {
+				isCrash = false
+				break
+			}
+		}
+		this.logs = make([]string, 0)
+		this.lock.Unlock()
+	}
+
 	if level == R_NOCHANGE {
 		result = &CommonResult{R_NOCHANGE}
 	}

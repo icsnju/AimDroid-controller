@@ -20,8 +20,6 @@ const (
 
 	APE_TREE = "tree"
 	APE_SIZE = "size"
-
-	MAX_SEQ = 50
 )
 
 var gActivityQueue *ActivityQueue = nil
@@ -90,19 +88,30 @@ func Start(a, g *net.TCPConn) {
 		mTest.Cache.filterAction(mTest.ActSet)
 
 		if mTest.ActSet.GetCount() <= 0 {
-			log.Println("2.No acion is found!")
-			continue
+			//Add some basic trackball events
+			tb := NewAction("trackball 100 0")
+			mTest.ActSet.AddAction(tb)
+			tb = NewAction("trackball -100 0")
+			mTest.ActSet.AddAction(tb)
+			tb = NewAction("trackball 0 100")
+			mTest.ActSet.AddAction(tb)
+			tb = NewAction("trackball 0 -100")
+			mTest.ActSet.AddAction(tb)
 		}
+
 		log.Println("2. Initial actions count:", mTest.ActSet.GetCount(), ", start to test activity..")
 
 		//Step3: send event
 		log.Println("3. Start send action")
 		times := 1
 		shouldChange := 0
+		//Generate some testing sequences
 		for times > 0 {
 			times = 0
 			sequence := NewActionSequence()
-			for i := 0; i < mTest.ActSet.GetCount(); i++ {
+
+			//Create an action sequence
+			for i := 0; i < 2*mTest.ActSet.GetCount(); i++ {
 				//clear log
 				mTest.Cache.clear()
 				//get an action
@@ -142,16 +151,20 @@ func Start(a, g *net.TCPConn) {
 				}
 
 				//Step4. Adjust reward of this action
-				log.Println("Adjust reward of this action: ", rs.ToString(), rs.GetKind())
 				feedback := Reward(mTest.ActSet, index, rs)
+				//If you can find something new, we will loop again
 				times += feedback
+				log.Println("Adjust reward of this action: ", rs.GetKind(), feedback)
 
 				sequence.add(index, rs)
 
-				if isOut {
+				//Testing is out of this activity, so restart it
+				//This aciton sequence it too long, let's start a new sequence
+				if isOut || sequence.count > config.GetMaxSeqLen() {
 					break
 				}
-			} //finish send action
+
+			} //finish an action sequence
 
 			if sequence.getCount() > 0 {
 				mTest.SequenceArray = append(mTest.SequenceArray, sequence)
@@ -164,7 +177,7 @@ func Start(a, g *net.TCPConn) {
 				}
 			}
 		}
-
+		//Step5. Save results of this activity
 		//log.Println("[Monkey]", out)
 		if mTest != nil {
 			mTest.Save("out/" + config.GetPackageName())
@@ -214,21 +227,22 @@ func currentActIsRight(name string) bool {
 
 //Set the key of guider
 func setKey(block, target, intent string) {
-	//set key
-	guider.SetWriteDeadline(time.Now().Add(time.Minute))
-	_, err := guider.Write([]byte(BLOCK_KEY + "@" + block + "\n"))
-	util.FatalCheck(err)
+	keys := BLOCK_KEY + "@" + block + "\n"
+
 	if len(target) <= 0 {
-		_, err = guider.Write([]byte(TARGET_KEY + "\n"))
+		keys += TARGET_KEY + "\n"
 	} else {
-		_, err = guider.Write([]byte(TARGET_KEY + "@" + target + "\n"))
+		keys += TARGET_KEY + "@" + target + "\n"
 	}
-	util.FatalCheck(err)
+
 	if len(intent) <= 0 {
-		_, err = guider.Write([]byte(INTENT_KEY + "\n"))
+		keys += INTENT_KEY + "\n"
 	} else {
-		_, err = guider.Write([]byte(INTENT_KEY + "@" + intent + "\n"))
+		keys += INTENT_KEY + "@" + intent + "\n"
 	}
+
+	guider.SetWriteDeadline(time.Now().Add(time.Minute))
+	_, err := guider.Write([]byte(keys))
 	util.FatalCheck(err)
 }
 
@@ -295,7 +309,7 @@ func Reward(set *ActionSet, index int, result Result) int {
 		set.AdjustReward(index, -1, 1)
 	case R_NOCHANGE:
 		set.AdjustReward(index, 0, 1)
-	case R_ERR:
+	case R_CRASH:
 		set.AdjustReward(index, 1, 1)
 		feedback = 1
 	case R_CHANGE:

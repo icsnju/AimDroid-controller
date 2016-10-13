@@ -25,6 +25,12 @@ func KillApp(pck string) error {
 	return err
 }
 
+func ClearApp(pck string) error {
+	cmd := adb + " shell pm clear " + pck
+	_, err := util.ExeCmd(cmd)
+	return err
+}
+
 func InitADB(sdk string) {
 	adb = path.Join(sdk, "platform-tools/adb")
 }
@@ -73,7 +79,7 @@ func RemoveFile(dst string) error {
 }
 
 func StartMonkey(pkg string) (string, error) {
-	cmd := adb + " shell monkey --pct-touch 100 --throttle 300 -v 500"
+	cmd := adb + " shell monkey -p " + pkg + " --throttle 500 -v 1000"
 	//cmd := GetADBPath(sdk) + " shell monkey --pct-touch 80 --pct-trackball 20 --throttle 300 --uiautomator -v 1000"
 	//cmd := GetADBPath(sdk) + " shell monkey --throttle 300 --uiautomator-dfs -v 100"
 

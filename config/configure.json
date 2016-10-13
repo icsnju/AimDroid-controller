@@ -2,5 +2,6 @@
 	"PackageName":"com.chuanwg.chuanwugong",
 	"MainActivity":"com.chuanwg.ui.activity.GuiderActivity",
 	"SDKPath":"/Users/Tianchi/Tool/sdk",
-	"Epsilon":0.1
+	"Epsilon":0.1,
+	"MaxSeqLen":100
 }

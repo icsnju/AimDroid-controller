@@ -12,10 +12,12 @@ type Configure struct {
 	SDKPath      string
 	Epsilon      float32
 	MaxSeqLen    int
+	MinSeqLen    int
+	Time         int
 }
 
 var configPath = "config/configure.json"
-var configuration *Configure = &Configure{"", "", "", 0.2, 50}
+var configuration *Configure = &Configure{"", "", "", 0.2, 50, 10, 1800}
 
 func InitConfig() {
 	log.Println("Init configuration..")
@@ -52,4 +54,12 @@ func GetEpsilon() float32 {
 
 func GetMaxSeqLen() int {
 	return configuration.MaxSeqLen
+}
+
+func GetMinSeqLen() int {
+	return configuration.MinSeqLen
+}
+
+func GetTime() int {
+	return configuration.Time
 }

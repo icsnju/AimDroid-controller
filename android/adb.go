@@ -19,11 +19,11 @@ func LaunchApp(pck, act string) error {
 }
 
 //Kill an application
-func KillApp(pck string) error {
-	cmd := adb + " shell am force-stop " + pck
-	_, err := util.ExeCmd(cmd)
-	return err
-}
+//func KillApp(pck string) error {
+//	cmd := adb + " shell am force-stop " + pck
+//	_, err := util.ExeCmd(cmd)
+//	return err
+//}
 
 func ClearApp(pck string) error {
 	cmd := adb + " shell pm clear " + pck
@@ -89,11 +89,25 @@ func StartMonkey(pkg string) (string, error) {
 	//return "", nil
 }
 
-func StartApe(port string) error {
-	cmd := adb + " shell monkey --ignore-crashes --port " + port
-	out, err := util.ExeCmd(cmd)
-	log.Println(out)
-	return err
+//start logcat
+func StartApe(port string) (*bufio.Reader, error) {
+
+	content := adb + " shell monkey --ignore-crashes --ignore-timeouts --ignore-native-crashes --port " + port
+	cmd := util.CreateCmd(content)
+
+	// Create stdout, stderr streams of type io.Reader
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, err
+	}
+	// Start command
+	err = cmd.Start()
+	if err != nil {
+		return nil, err
+	}
+
+	read := bufio.NewReader(stdout)
+	return read, nil
 }
 
 //adb forward

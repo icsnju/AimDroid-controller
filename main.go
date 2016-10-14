@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"log"
 	"monidroid/android"
 	"monidroid/config"
@@ -30,31 +31,33 @@ func main() {
 	android.InitADB(config.GetSDKPath())
 
 	//start ape server
-	ape := startApeServer()
-	defer closeApe(ape)
+	apeIn, apeOut := startApeServer()
+	defer closeApe(apeIn)
 
 	//start guider server
 	guider := startGuiderServer()
 	defer closeGuider(guider)
 
 	//start test
-	test.Start(ape, guider)
+	test.Start(apeIn, guider, apeOut)
 	t2 := time.Now()
 	log.Println(t2.Sub(t1).Seconds())
 }
 
 //Start ape server
-func startApeServer() *net.TCPConn {
+func startApeServer() (*net.TCPConn, *bufio.Reader) {
 	log.Println("Start ape server..")
 	//Adb forward tcp
 	err := android.Forward(MY_APE_PORT, YOUR_APE_PORT)
 	util.FatalCheck(err)
 
 	//Start Ape server
-	//go android.StartApe(YOUR_APE_PORT)
-	time.Sleep(time.Second * 5)
-	ape := connectToServer(APE)
-	return ape
+	apeOut, err := android.StartApe(YOUR_APE_PORT)
+	util.FatalCheck(err)
+
+	time.Sleep(time.Second * 3)
+	apeIn := connectToServer(APE)
+	return apeIn, apeOut
 }
 
 //Start guider server

@@ -47,6 +47,7 @@ func (this *Test) Save(out string) {
 	name, intent := this.Act.Get()
 	fs.WriteString(name + "\n")
 	fs.WriteString(intent + "\n")
+	fs.WriteString(this.Act.GetParent() + "\n")
 	fs.Close()
 
 	//save actions
@@ -224,7 +225,7 @@ func (this *LogCache) filterResult() Result {
 					level = R_CHANGE
 				}
 			case LOG_CRASH:
-				if R_CRASH >= level {
+				if R_CRASH > level {
 					level = R_CRASH
 					rr = NewCrashResult()
 					result = rr
@@ -241,11 +242,11 @@ func (this *LogCache) filterResult() Result {
 					break
 				}
 			default:
-				log.Println("Unknown result:", line)
+				//log.Println("Unknown result:", line)
 			}
 
 		} else {
-			log.Println("Unknown result:", line)
+			//log.Println("Unknown result:", line)
 		}
 	}
 	//clear the log cache

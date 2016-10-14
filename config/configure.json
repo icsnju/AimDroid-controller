@@ -3,5 +3,7 @@
 	"MainActivity":"com.chuanwg.ui.activity.GuiderActivity",
 	"SDKPath":"/Users/Tianchi/Tool/sdk",
 	"Epsilon":0.2,
-	"MaxSeqLen":50
+	"MaxSeqLen":50,
+	"MinSeqLen":20,
+	"Time":3600
 }

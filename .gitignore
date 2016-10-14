@@ -3,3 +3,4 @@ target.txt
 pkg.txt
 .DS_Store
 out/
+config*.json

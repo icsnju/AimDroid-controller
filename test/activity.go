@@ -107,3 +107,10 @@ func (this *ActivityQueue) Save(out string) {
 	}
 	fs.Close()
 }
+
+//Edge between two activities
+type AAEdge struct {
+	ToActivity string
+	StepLen    int
+	SeqIndex   int
+}

@@ -1,6 +1,7 @@
 package test
 
 import (
+	"encoding/json"
 	"log"
 	"monidroid/util"
 	"os"
@@ -18,6 +19,7 @@ type Test struct {
 	ActSet        *ActionSet
 	SequenceArray []*ActionSequence
 	Cache         *LogCache
+	Find          map[string]*AAEdge
 }
 
 func NewTest() *Test {
@@ -26,6 +28,7 @@ func NewTest() *Test {
 	t.ActSet = NewActionSet()
 	t.Cache = NewLogCache()
 	t.SequenceArray = make([]*ActionSequence, 0)
+	t.Find = make(map[string]*AAEdge)
 	return t
 }
 
@@ -56,6 +59,7 @@ func (this *Test) Save(out string) {
 	}
 	fs.Close()
 
+	//save sequences
 	seqsDir := path.Join(mDir, "Sequences")
 	if _, err := os.Stat(seqsDir); os.IsNotExist(err) {
 		os.MkdirAll(seqsDir, os.ModePerm)
@@ -66,7 +70,6 @@ func (this *Test) Save(out string) {
 		os.MkdirAll(crashDir, os.ModePerm)
 	}
 
-	//save sequences
 	for i, seq := range this.SequenceArray {
 		seqFile := path.Join(seqsDir, strconv.Itoa(i)+".txt")
 		fs, err = os.OpenFile(seqFile, os.O_CREATE|os.O_RDWR, os.ModePerm)
@@ -87,6 +90,24 @@ func (this *Test) Save(out string) {
 		fs.Close()
 	}
 
+	//save edges
+	edgeFile := path.Join(mDir, "edge.txt")
+	fs, err = os.OpenFile(edgeFile, os.O_CREATE|os.O_RDWR, os.ModePerm)
+	util.FatalCheck(err)
+
+	for name, e := range this.Find {
+		fs.WriteString(name + " ")
+		util.FatalCheck(err)
+
+		content, err := json.Marshal(e)
+		if err == nil {
+			fs.Write(content)
+			fs.WriteString("\n")
+		} else {
+			log.Println(err)
+		}
+	}
+	fs.Close()
 }
 
 //Put device log into this cache
@@ -253,4 +274,26 @@ func (this *LogCache) filterResult() Result {
 		result = &CommonResult{R_NOCHANGE}
 	}
 	return result
+}
+
+func (this *Test) addEdge(rs Result, step int) {
+	if rs.GetKind() == R_ACTIVITY {
+		act, ok := rs.(*ActivityResult)
+		if ok {
+			name, _ := act.GetContent()
+			edge, ex := this.Find[name]
+			if ex {
+				if edge.StepLen > step {
+					edge.SeqIndex = len(this.SequenceArray)
+					edge.StepLen = step
+				}
+			} else {
+				ne := new(AAEdge)
+				ne.SeqIndex = len(this.SequenceArray)
+				ne.StepLen = step
+				ne.ToActivity = name
+				this.Find[name] = ne
+			}
+		}
+	}
 }

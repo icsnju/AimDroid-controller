@@ -43,7 +43,7 @@ func StartLogcat() (*bufio.Reader, error) {
 		return nil, err
 	}
 
-	cmd := util.CreateCmd(adb + " logcat Monitor_Log:V *:E")
+	cmd := util.CreateCmd(adb + " logcat Monitor_Log:V *:S")
 
 	// Create stdout, stderr streams of type io.Reader
 	stdout, err := cmd.StdoutPipe()

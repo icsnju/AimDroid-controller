@@ -51,7 +51,7 @@ func startApeServer() *net.TCPConn {
 	util.FatalCheck(err)
 
 	//Start Ape server
-	go android.StartApe(YOUR_APE_PORT)
+	//go android.StartApe(YOUR_APE_PORT)
 	time.Sleep(time.Second * 5)
 	ape := connectToServer(APE)
 	return ape

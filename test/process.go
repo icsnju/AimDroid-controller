@@ -6,6 +6,7 @@ import (
 	"monidroid/config"
 	"monidroid/util"
 	"net"
+	"path"
 	"time"
 )
 
@@ -72,13 +73,22 @@ func Start(a, g *net.TCPConn) {
 			//set the key
 			setKey(TRUE, name, intent)
 		} else {
+			mTest.Cache.clear()
 			startThisActivity(name, intent)
 		}
 		log.Println("1. Start activity to generate actions..", act.name)
 
 		if !currentActIsRight(name) {
 			//In a wrong activity
-			log.Println("You are in a wrong activity", android.GetCurrentActivity())
+			mTest.Save("out/" + config.GetPackageName())
+			rs := mTest.Cache.filterResult()
+			log.Println("You are in a wrong activity", android.GetCurrentActivity(), rs.GetKind())
+
+			cr, ok := rs.(*CrashResult)
+			if ok {
+				cout := path.Join("out", config.GetPackageName(), name, "Crash")
+				cr.Save(cout)
+			}
 			continue
 		}
 		//Step2: generate initial actions set
@@ -154,9 +164,10 @@ func Start(a, g *net.TCPConn) {
 				feedback := Reward(mTest.ActSet, index, rs)
 				//If you can find something new, we will loop again
 				times += feedback
-				log.Println("Adjust reward of this action: ", rs.GetKind(), feedback)
+				//log.Println("Adjust reward of this action: ", rs.GetKind(), feedback)
 
 				sequence.add(index, rs)
+				mTest.addEdge(rs, sequence.count)
 
 				//Testing is out of this activity, so restart it
 				//This aciton sequence it too long, let's start a new sequence
@@ -253,7 +264,7 @@ func sendCommandToApe(cmd string) {
 }
 
 func sendActionToApe(a *Action) {
-	log.Println("Send action: ", a.getContent(), a.getAveReward())
+	//log.Println("Send action: ", a.getContent(), a.getAveReward())
 	ape.SetWriteDeadline(time.Now().Add(time.Minute))
 	_, err := ape.Write([]byte(a.getContent() + "\n"))
 	util.FatalCheck(err)

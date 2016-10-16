@@ -20,6 +20,7 @@ type Test struct {
 	SequenceArray []*ActionSequence
 	Cache         *LogCache
 	Find          map[string]*AAEdge
+	HaveCrash     bool
 }
 
 func NewTest() *Test {
@@ -29,6 +30,7 @@ func NewTest() *Test {
 	t.Cache = NewLogCache()
 	t.SequenceArray = make([]*ActionSequence, 0)
 	t.Find = make(map[string]*AAEdge)
+	t.HaveCrash = false
 	return t
 }
 
@@ -242,11 +244,11 @@ func (this *LogCache) filterResult() Result {
 					break
 				}
 			default:
-				//log.Println("Unknown result:", line)
+				log.Println("Unknown result:", line)
 			}
 
 		} else {
-			//log.Println("Unknown result:", line)
+			log.Println("Unknown result:", line)
 		}
 	}
 	//clear the log cache

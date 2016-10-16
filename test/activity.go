@@ -9,16 +9,18 @@ import (
 )
 
 type Activity struct {
-	name   string
-	intent string
-	parent string
+	name     string
+	intent   string
+	parent   string
+	findTime int64
 }
 
 //Set the Activity
-func (this *Activity) Set(n, i, p string) {
+func (this *Activity) Set(n, i, p string, time int64) {
 	this.name = n
 	this.intent = i
 	this.parent = p
+	this.findTime = time
 }
 
 //Get the Activity
@@ -41,21 +43,21 @@ type ActivityQueue struct {
 	queue    []*Activity
 	oldQueue []*Activity
 	set      map[string]*Test
-	crashSet []string
+	crashSet map[string]int
 	lock     *sync.Mutex
 }
 
 func NewQueue() *ActivityQueue {
-	return &ActivityQueue{make([]*Activity, 0), make([]*Activity, 0), make(map[string]*Test), make([]string, 0), new(sync.Mutex)}
+	return &ActivityQueue{make([]*Activity, 0), make([]*Activity, 0), make(map[string]*Test), make(map[string]int), new(sync.Mutex)}
 }
 
-func (this *ActivityQueue) Enqueue(name, intent, parent string) bool {
+func (this *ActivityQueue) Enqueue(name, intent, parent string, time int64) bool {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 	_, ex := this.set[name]
 	if !ex {
 		a := &Activity{}
-		a.Set(name, intent, parent)
+		a.Set(name, intent, parent, time)
 		this.queue = append(this.queue, a)
 		test := NewTest()
 		test.Act = a
@@ -82,11 +84,15 @@ func (this *ActivityQueue) EnOldQueue(act *Activity) {
 	this.oldQueue = append(this.oldQueue, act)
 }
 
-func (this *ActivityQueue) ExchangeQueue() {
+func (this *ActivityQueue) DeOldQueue() *Activity {
 	this.lock.Lock()
 	defer this.lock.Unlock()
-	this.queue = this.oldQueue
-	this.oldQueue = make([]*Activity, 0)
+	if len(this.oldQueue) <= 0 {
+		return nil
+	}
+	first := this.oldQueue[0]
+	this.oldQueue = this.oldQueue[1:]
+	return first
 }
 
 func (this *ActivityQueue) GetTest(name string) *Test {
@@ -116,10 +122,14 @@ func (this *ActivityQueue) ToString() string {
 	return result
 }
 
-func (this *ActivityQueue) AddCrash(name string) {
+func (this *ActivityQueue) AddCrash(content string, seqindex int) bool {
 	this.lock.Lock()
 	defer this.lock.Unlock()
-	this.crashSet = append(this.crashSet, name)
+	_, ex := this.crashSet[content]
+	if !ex {
+		this.crashSet[content] = seqindex
+	}
+	return ex
 }
 
 //Save queue in file
@@ -131,17 +141,17 @@ func (this *ActivityQueue) Save(out string) {
 	queueFile := path.Join(out, "queue.txt")
 	fs, err := os.OpenFile(queueFile, os.O_CREATE|os.O_RDWR, os.ModePerm)
 	util.FatalCheck(err)
-	fs.WriteString("Find activity " + strconv.Itoa(len(this.set)) + ":\n")
-	for act, _ := range this.set {
-		fs.WriteString(act + "\n")
+	fs.WriteString("Find activities " + strconv.Itoa(len(this.set)) + ":\n")
+	for act, test := range this.set {
+		fs.WriteString(act + "\t" + test.Act.parent + "\t" + strconv.FormatInt(test.Act.findTime, 10) + "\t" + test.Act.intent + "\n")
 	}
 	fs.Close()
 
 	crashFile := path.Join(out, "crash.txt")
 	fs, err = os.OpenFile(crashFile, os.O_CREATE|os.O_RDWR, os.ModePerm)
 	util.FatalCheck(err)
-	for i, ca := range this.crashSet {
-		fs.WriteString(strconv.Itoa(i) + "\t" + ca + "\n")
+	for content, seqindex := range this.crashSet {
+		fs.WriteString(content + "\t" + strconv.Itoa(seqindex) + "\n")
 	}
 	fs.Close()
 

@@ -63,6 +63,7 @@ func startApeServer() (*net.TCPConn, *bufio.Reader) {
 //Start guider server
 func startGuiderServer() *net.TCPConn {
 	log.Println("Start guider server..")
+	android.ClearApp(GUIDER_PACKAGE_NAME)
 	//Adb forward tcp
 	err := android.Forward(MY_GUIDER_PORT, YOUR_GUIDER_PORT)
 	util.FatalCheck(err)

@@ -35,7 +35,8 @@ func Start(a, g *net.TCPConn, cr *bufio.Reader) {
 	//TODO:send pkgname
 	//	_, err = service.Write([]byte(PACKAGE_NAME_KEY + "@" + getPackageName() + "\n"))
 	//	util.FatalCheck(err)
-	finishTime := time.Now().Add(time.Duration(config.GetTime()) * time.Second)
+	startTime := time.Now()
+	finishTime := startTime.Add(time.Duration(config.GetTime()) * time.Second)
 	log.Println("Start test..")
 
 	//create activity queue
@@ -45,6 +46,8 @@ func Start(a, g *net.TCPConn, cr *bufio.Reader) {
 	ape = a
 	guider = g
 	crashReader = cr
+	//	setKey(FALSE, "", "")
+	//	return
 
 	//start logcat
 	go startObserver()
@@ -55,28 +58,30 @@ func Start(a, g *net.TCPConn, cr *bufio.Reader) {
 
 	//It is first time to launch this app
 	android.ClearApp(config.GetPackageName())
-	time.Sleep(time.Millisecond * 2000)
-
+	time.Sleep(time.Millisecond * 1000)
 	android.LaunchApp(config.GetPackageName(), config.GetMainActivity())
 	time.Sleep(time.Millisecond * 3000)
 
 	//Get currently focused activity
 	root := android.GetCurrentActivity()
 	//Create the first activity
-	gActivityQueue.Enqueue(root, "", "")
+	gActivityQueue.Enqueue(root, "", "", int64(time.Now().Sub(startTime).Seconds()))
 
 	//Get an activity to test
 	for time.Now().Before(finishTime) {
-		if gActivityQueue.IsEmpty() {
-			gActivityQueue.ExchangeQueue()
-		}
+
 		//Step1: get an activity to start
-		act := gActivityQueue.Dequeue()
-		if act == nil {
+		var activity *Activity = nil
+		if gActivityQueue.IsEmpty() {
+			activity = gActivityQueue.DeOldQueue()
+		} else {
+			activity = gActivityQueue.Dequeue()
+		}
+		if activity == nil {
 			log.Println("No activity is in the queue!")
 			break
 		}
-		name, intent := act.Get()
+		name := activity.GetName()
 
 		//Test record the testing state
 		mTest = gActivityQueue.GetTest(name)
@@ -86,14 +91,10 @@ func Start(a, g *net.TCPConn, cr *bufio.Reader) {
 		}
 
 		mTest.Cache.clear()
-		if len(intent) <= 0 {
-			//It's the first time to start this application
-			//set the key
-			setKey(TRUE, name, intent)
-		} else {
-			startThisActivity(name, intent)
-		}
-		log.Println("1. Start activity to generate actions..", act.name)
+
+		log.Println("1. Start activity to generate actions..", activity.name)
+		//Step1.2: start this activity
+		startThisActivity(activity, mTest.HaveCrash)
 
 		if !currentActIsRight(name) {
 			//In a wrong activity
@@ -104,8 +105,11 @@ func Start(a, g *net.TCPConn, cr *bufio.Reader) {
 			if ok {
 				cout := path.Join("out", config.GetPackageName(), name, "Crash")
 				cr.Save(cout)
-				gActivityQueue.AddCrash(name)
+				gActivityQueue.AddCrash(name+"@launch activity", -1)
+				mTest.HaveCrash = true
 			}
+
+			gActivityQueue.EnOldQueue(activity)
 			continue
 		}
 		//Step2: generate initial actions set
@@ -124,6 +128,8 @@ func Start(a, g *net.TCPConn, cr *bufio.Reader) {
 			mTest.ActSet.AddAction(tb)
 			tb = NewAction("trackball 0 -100")
 			mTest.ActSet.AddAction(tb)
+			tb = NewAction("key down 82")
+			mTest.ActSet.AddAction(tb)
 		} else {
 			tb := NewAction("trackball 0 -100")
 			mTest.ActSet.AddAction(tb)
@@ -138,7 +144,6 @@ func Start(a, g *net.TCPConn, cr *bufio.Reader) {
 		//Step3: send event
 		log.Println("3. Start send action")
 		times := 1
-		shouldChange := 0
 		//Generate some testing sequences
 		for times > 0 {
 			times = 0
@@ -160,6 +165,7 @@ func Start(a, g *net.TCPConn, cr *bufio.Reader) {
 				//send action
 				mTest.Cache.clear()
 				sendActionToApe(action)
+				log.Println("Send action:", action.content, action.getAveReward())
 				time.Sleep(time.Millisecond * 1000)
 
 				//if it go out of the target activity
@@ -168,34 +174,45 @@ func Start(a, g *net.TCPConn, cr *bufio.Reader) {
 				//get result
 				rs := mTest.Cache.filterResult()
 
+				//If it is a crash
 				if rs.GetKind() == R_CRASH {
-					gActivityQueue.AddCrash(name)
+					cr, ok := rs.(*CrashResult)
+					if ok {
+						ex := gActivityQueue.AddCrash(name+"@"+action.content, len(mTest.SequenceArray))
+						//old crash
+						if ex {
+							cr.SetKind(R_NOCHANGE)
+						}
+						mTest.HaveCrash = true
+					} else {
+						cr.SetKind(R_NOCHANGE)
+					}
 				}
 
 				//if nothing change
-				if rs.GetKind() == R_CHANGE && !isOut && shouldChange == 0 {
-					shouldChange = 1
+				if rs.GetKind() <= R_CHANGE && !isOut {
 					mTest.Cache.clear()
 					sendCommandToApe(APE_TREE)
 					time.Sleep(time.Millisecond * 1000)
 					count := mTest.Cache.filterAction(mTest.ActSet)
 					//Little views change, so it is unchanged
-					if count < 3 {
-						cr, ok := rs.(*CommonResult)
-						if ok {
+					cr, ok := rs.(*CommonResult)
+					if ok {
+						if count < 3 {
 							cr.SetKind(R_NOCHANGE)
-							rs = cr
+						} else {
+							cr.SetKind(R_CHANGE)
 						}
+						rs = cr
+
 					}
-				} else {
-					shouldChange = 0
 				}
 
 				//Step4. Adjust reward of this action
-				feedback := Reward(mTest.ActSet, index, rs, name)
+				feedback := Reward(mTest.ActSet, index, rs, name, int64(time.Now().Sub(startTime).Seconds()))
 				//If you can find something new, we will loop again
 				times += feedback
-				//log.Println("Adjust reward of this action: ", rs.GetKind(), feedback)
+				log.Println("Adjust reward of this action: ", rs.GetKind(), feedback)
 
 				sequence.add(index, rs)
 				mTest.addEdge(rs, sequence.count)
@@ -213,7 +230,7 @@ func Start(a, g *net.TCPConn, cr *bufio.Reader) {
 			}
 			//Restart this activity
 			if times > 0 {
-				ok := startThisActivity(name, intent)
+				ok := startThisActivity(activity, mTest.HaveCrash)
 				if !ok {
 					break
 				}
@@ -222,7 +239,7 @@ func Start(a, g *net.TCPConn, cr *bufio.Reader) {
 		//Step5. Save results of this activity
 		//log.Println("[Monkey]", out)
 		if mTest != nil {
-			gActivityQueue.EnOldQueue(act)
+			gActivityQueue.EnOldQueue(activity)
 		}
 	}
 
@@ -237,20 +254,67 @@ func Start(a, g *net.TCPConn, cr *bufio.Reader) {
 }
 
 //Start an activity
-func startThisActivity(name, intent string) bool {
+func startThisActivity(act *Activity, haveCrash bool) bool {
 	//kill this app started last time
 	android.ClearApp(config.GetPackageName())
-	time.Sleep(time.Millisecond * 2000)
+	time.Sleep(time.Millisecond * 500)
+	if haveCrash {
+		return startThisActivityFromParent(act.GetParent(), act.GetName())
+	} else {
+		return startThisActivityDirectly(act.Get())
+	}
+}
 
+func startThisActivityDirectly(name, intent string) bool {
 	//reset the key
 	setKey(FALSE, name, intent)
-	time.Sleep(time.Millisecond * 1000)
 	//launch app
 	android.LaunchApp(config.GetPackageName(), config.GetMainActivity())
 	time.Sleep(time.Millisecond * 2000)
 	ok := currentActIsRight(name)
 	//set the key
 	setKey(TRUE, name, intent)
+	return ok
+}
+
+func startThisActivityFromParent(parent, me string) bool {
+	//Get parent firstly
+	parentTest := gActivityQueue.GetTest(parent)
+	ok := startThisActivity(parentTest.Act, parentTest.HaveCrash)
+	if !ok {
+		return ok
+	}
+
+	//find the sequence
+	edge, ex := parentTest.Find[me]
+	if !ex {
+		return ex
+	}
+	index := edge.SeqIndex
+	seq := parentTest.SequenceArray[index]
+	intent := ""
+	//replay this sequence
+	for i, ai := range seq.sequence {
+		action := parentTest.ActSet.queue[ai]
+		rs, ex := seq.tag[i]
+		find := false
+		if ex {
+			ar, ok := rs.(*ActivityResult)
+			if ok && ar.name == me {
+				setKey(FALSE, "", "")
+				find = true
+				intent = ar.intent
+			}
+		}
+		sendCommandToApe(action.content)
+		if find {
+			break
+		}
+	}
+
+	ok = currentActIsRight(me)
+	//set the key
+	setKey(TRUE, me, intent)
 	return ok
 }
 
@@ -288,6 +352,7 @@ func setKey(block, target, intent string) {
 	guider.SetWriteDeadline(time.Now().Add(time.Minute))
 	_, err := guider.Write([]byte(keys))
 	util.FatalCheck(err)
+	time.Sleep(1000 * time.Millisecond)
 }
 
 func sendCommandToApe(cmd string) {
@@ -353,7 +418,7 @@ func startCrashReader() {
 }
 
 //Adjust reward of this action
-func Reward(set *ActionSet, index int, result Result, parent string) int {
+func Reward(set *ActionSet, index int, result Result, parent string, time int64) int {
 	kind := result.GetKind()
 
 	feedback := 0
@@ -364,7 +429,7 @@ func Reward(set *ActionSet, index int, result Result, parent string) int {
 			log.Fatalln("Activity result err")
 		}
 		name, content := actRs.GetContent()
-		ok = gActivityQueue.Enqueue(name, content, parent)
+		ok = gActivityQueue.Enqueue(name, content, parent, time)
 		if ok {
 			//It is a new activity
 			set.AdjustReward(index, 1, 1)
@@ -375,7 +440,7 @@ func Reward(set *ActionSet, index int, result Result, parent string) int {
 			feedback = 1
 		} else {
 			//It is a old activity
-			set.AdjustReward(index, 0, 1)
+			set.AdjustReward(index, -1, 1)
 		}
 	case R_FINISH:
 		//I don't want to finish

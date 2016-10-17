@@ -166,7 +166,7 @@ func Start(a, g *net.TCPConn, cr *bufio.Reader) {
 				mTest.Cache.clear()
 				sendActionToApe(action)
 				log.Println("Send action:", action.content, action.getAveReward())
-				time.Sleep(time.Millisecond * 1000)
+				time.Sleep(time.Millisecond * 700)
 
 				//if it go out of the target activity
 				isOut := !currentActIsRight(name)
@@ -190,22 +190,12 @@ func Start(a, g *net.TCPConn, cr *bufio.Reader) {
 				}
 
 				//if nothing change
-				if rs.GetKind() <= R_CHANGE && !isOut {
+				if !isOut {
 					mTest.Cache.clear()
 					sendCommandToApe(APE_TREE)
 					time.Sleep(time.Millisecond * 1000)
 					count := mTest.Cache.filterAction(mTest.ActSet)
 					//Little views change, so it is unchanged
-					cr, ok := rs.(*CommonResult)
-					if ok {
-						if count < 3 {
-							cr.SetKind(R_NOCHANGE)
-						} else {
-							cr.SetKind(R_CHANGE)
-						}
-						rs = cr
-
-					}
 				}
 
 				//Step4. Adjust reward of this action
@@ -284,7 +274,6 @@ func startThisActivityFromParent(parent, me string) bool {
 	if !ok {
 		return ok
 	}
-
 	//find the sequence
 	edge, ex := parentTest.Find[me]
 	if !ex {
@@ -295,6 +284,7 @@ func startThisActivityFromParent(parent, me string) bool {
 	intent := ""
 	//replay this sequence
 	for i, ai := range seq.sequence {
+		time.Sleep(1 * time.Second)
 		action := parentTest.ActSet.queue[ai]
 		rs, ex := seq.tag[i]
 		find := false

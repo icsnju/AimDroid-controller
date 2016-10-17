@@ -11,11 +11,12 @@ type Action struct {
 	content string
 	reward  float64
 	count   int
+	usable  bool
 }
 
 //Create an action
 func NewAction(content string) *Action {
-	return &Action{content, 1, 1}
+	return &Action{content, 1, 1, true}
 }
 
 func (this *Action) adjustReward(r float64, c int) {
@@ -55,8 +56,10 @@ func (this *ActionSet) GetCount() int {
 //Add an action in set.
 //If this is an new action, return true. Otherwise, return false.
 func (this *ActionSet) AddAction(action *Action) bool {
-	_, exist := this.set[action.content]
+	index, exist := this.set[action.content]
 	if exist {
+		me := this.queue[index]
+		me.usable = true
 		return false
 	}
 
@@ -81,19 +84,40 @@ func (this *ActionSet) GetMaxRewardAction() (*Action, int) {
 
 	//find the candidates
 	var indexSet []int = make([]int, 0)
-	var maxReward float64 = this.queue[0].getAveReward()
+	var maxReward float64 = 0
+	firstTime := true
 	for index, action := range this.queue {
-		re := action.getAveReward()
-		if re == maxReward {
-			indexSet = append(indexSet, index)
-		} else if re > maxReward {
-			indexSet = make([]int, 0)
-			indexSet = append(indexSet, index)
-			maxReward = re
+		if action.usable {
+			re := action.getAveReward()
+			if firstTime {
+				firstTime = false
+				indexSet = append(indexSet, index)
+				maxReward = re
+			} else if re == maxReward {
+				indexSet = append(indexSet, index)
+			} else if re > maxReward {
+				indexSet = make([]int, 0)
+				indexSet = append(indexSet, index)
+				maxReward = re
+			}
 		}
+		action.usable = false
 	}
 
 	//select an action from candidates
+	if len(indexSet) <= 0 {
+		for index, action := range this.queue {
+			re := action.getAveReward()
+			if re == maxReward {
+				indexSet = append(indexSet, index)
+			} else if re > maxReward {
+				indexSet = make([]int, 0)
+				indexSet = append(indexSet, index)
+				maxReward = re
+			}
+		}
+	}
+
 	if len(indexSet) <= 0 {
 		log.Println("This action set has no action!")
 		return nil, 0
@@ -119,10 +143,26 @@ func (this *ActionSet) GetRandomAction() (*Action, int) {
 	}
 
 	if l == 1 {
+		this.queue[0].usable = false
 		return this.queue[0], 0
 	}
 
-	index := rand.Intn(l)
+	var indexSet []int = make([]int, 0)
+
+	for index, action := range this.queue {
+		if action.usable {
+			indexSet = append(indexSet, index)
+		}
+		action.usable = false
+	}
+
+	index := 0
+	if len(indexSet) > 0 {
+		i := rand.Intn(len(indexSet))
+		index = indexSet[i]
+	} else {
+		index = rand.Intn(l)
+	}
 	return this.queue[index], index
 }
 

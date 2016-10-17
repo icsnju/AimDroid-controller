@@ -149,6 +149,8 @@ func Start(a, g *net.TCPConn, cr *bufio.Reader) {
 			times = 0
 			sequence := NewActionSequence()
 
+			var index int = 0
+			_, index = mTest.ActSet.GetEpGreAction()
 			//Create an action sequence
 			for i := 0; ; i++ {
 				if i > 2*mTest.ActSet.GetCount() && i > config.GetMinSeqLen() {
@@ -157,7 +159,7 @@ func Start(a, g *net.TCPConn, cr *bufio.Reader) {
 				//clear log
 				mTest.Cache.clear()
 				//get an action
-				action, index := mTest.ActSet.GetEpGreAction()
+				action := mTest.ActSet.GetAction(index)
 				if action == nil {
 					log.Fatalln("No action found!")
 					break
@@ -165,7 +167,7 @@ func Start(a, g *net.TCPConn, cr *bufio.Reader) {
 				//send action
 				mTest.Cache.clear()
 				sendActionToApe(action)
-				log.Println("Send action:", action.content, action.getAveReward())
+				log.Println("Send action:", action.content, action.getQ())
 				time.Sleep(time.Millisecond * 700)
 
 				//if it go out of the target activity
@@ -189,24 +191,25 @@ func Start(a, g *net.TCPConn, cr *bufio.Reader) {
 					}
 				}
 
-				//if nothing change
+				//Get current view
 				if !isOut {
 					mTest.Cache.clear()
 					sendCommandToApe(APE_TREE)
 					time.Sleep(time.Millisecond * 1000)
-					count := mTest.Cache.filterAction(mTest.ActSet)
+					mTest.Cache.filterAction(mTest.ActSet)
 					//Little views change, so it is unchanged
 				}
 
-				//Step4. Adjust reward of this action
-				feedback := Reward(mTest.ActSet, index, rs, name, int64(time.Now().Sub(startTime).Seconds()))
+				//Step4. Adjust Q of this action
+				_, index2 := mTest.ActSet.GetEpGreAction()
+				feedback := Reward(mTest.ActSet, index, index2, rs, name, int64(time.Now().Sub(startTime).Seconds()))
 				//If you can find something new, we will loop again
 				times += feedback
 				log.Println("Adjust reward of this action: ", rs.GetKind(), feedback)
 
 				sequence.add(index, rs)
 				mTest.addEdge(rs, sequence.count)
-
+				index = index2
 				//Testing is out of this activity, so restart it
 				//This aciton sequence it too long, let's start a new sequence
 				if isOut || sequence.count > config.GetMaxSeqLen() {
@@ -408,7 +411,7 @@ func startCrashReader() {
 }
 
 //Adjust reward of this action
-func Reward(set *ActionSet, index int, result Result, parent string, time int64) int {
+func Reward(set *ActionSet, index, index2 int, result Result, parent string, time int64) int {
 	kind := result.GetKind()
 
 	feedback := 0
@@ -421,27 +424,23 @@ func Reward(set *ActionSet, index int, result Result, parent string, time int64)
 		name, content := actRs.GetContent()
 		ok = gActivityQueue.Enqueue(name, content, parent, time)
 		if ok {
-			//It is a new activity
-			set.AdjustReward(index, 1, 1)
-
-			//Reward my siblings
-			set.AdjustReward(index+1, 1, 0)
-			set.AdjustReward(index-1, 1, 0)
+			//Reward
+			set.AdjustQ(index, index2, 1)
 			feedback = 1
 		} else {
 			//It is a old activity
-			set.AdjustReward(index, -1, 1)
+			set.AdjustQ(index, index2, 0)
 		}
 	case R_FINISH:
 		//I don't want to finish
-		set.AdjustReward(index, -1, 1)
+		set.AdjustQ(index, index2, 0)
 	case R_NOCHANGE:
-		set.AdjustReward(index, 0, 1)
+		set.AdjustQ(index, index2, 0)
 	case R_CRASH:
-		set.AdjustReward(index, 1, 1)
+		set.AdjustQ(index, index2, 1)
 		feedback = 1
 	case R_CHANGE:
-		set.AdjustReward(index, 1, 1)
+		set.AdjustQ(index, index2, 0)
 	default:
 		log.Fatalln("Result is unknown, err")
 	}

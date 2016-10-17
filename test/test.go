@@ -58,7 +58,7 @@ func (this *Test) Save(out string) {
 	util.FatalCheck(err)
 	queue := this.ActSet.queue
 	for _, action := range queue {
-		fs.WriteString(action.getContent() + "\t" + strconv.Itoa(action.count) + "\t" + strconv.FormatFloat(action.reward, 'f', 4, 64) + "\n")
+		fs.WriteString(action.getContent() + "\t" + strconv.FormatFloat(action.Q, 'f', 4, 64) + "\n")
 	}
 	fs.Close()
 

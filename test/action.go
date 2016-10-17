@@ -9,26 +9,21 @@ import (
 
 type Action struct {
 	content string
-	reward  float64
-	count   int
+	Q       float64
 	usable  bool
 }
 
 //Create an action
 func NewAction(content string) *Action {
-	return &Action{content, 1, 1, true}
+	return &Action{content, 1, true}
 }
 
-func (this *Action) adjustReward(r float64, c int) {
-	if c < 0 {
-		c = 0
-	}
-	this.count = this.count + c
-	this.reward += r
+func (this *Action) adjustQ(q float64) {
+	this.Q = q
 }
 
-func (this *Action) getAveReward() float64 {
-	return this.reward / float64(this.count)
+func (this *Action) getQ() float64 {
+	return this.Q
 }
 
 func (this *Action) getContent() string {
@@ -52,6 +47,12 @@ func NewActionSet() *ActionSet {
 func (this *ActionSet) GetCount() int {
 	return len(this.queue)
 }
+func (this *ActionSet) GetAction(index int) *Action {
+	if len(this.queue) <= index {
+		return nil
+	}
+	return this.queue[index]
+}
 
 //Add an action in set.
 //If this is an new action, return true. Otherwise, return false.
@@ -69,14 +70,17 @@ func (this *ActionSet) AddAction(action *Action) bool {
 }
 
 //Adjust reward of an action
-func (this *ActionSet) AdjustReward(index int, reward float64, count int) {
+func (this *ActionSet) AdjustQ(index, index2 int, reward float64) {
 	index = (index + len(this.queue)) % len(this.queue)
+	index2 = (index2 + len(this.queue)) % len(this.queue)
+
 	action := this.queue[index]
-	action.adjustReward(reward, count)
+	action2 := this.queue[index2]
+	action.Q = action.Q + 0.8*(reward+0.8*action2.Q-action.Q)
 }
 
 //Get the action with the maximal reward
-func (this *ActionSet) GetMaxRewardAction() (*Action, int) {
+func (this *ActionSet) GetMaxQAction() (*Action, int) {
 	if len(this.queue) <= 0 {
 		log.Println("This action set has no action!")
 		return nil, 0
@@ -88,7 +92,7 @@ func (this *ActionSet) GetMaxRewardAction() (*Action, int) {
 	firstTime := true
 	for index, action := range this.queue {
 		if action.usable {
-			re := action.getAveReward()
+			re := action.getQ()
 			if firstTime {
 				firstTime = false
 				indexSet = append(indexSet, index)
@@ -107,7 +111,7 @@ func (this *ActionSet) GetMaxRewardAction() (*Action, int) {
 	//select an action from candidates
 	if len(indexSet) <= 0 {
 		for index, action := range this.queue {
-			re := action.getAveReward()
+			re := action.getQ()
 			if re == maxReward {
 				indexSet = append(indexSet, index)
 			} else if re > maxReward {
@@ -147,22 +151,8 @@ func (this *ActionSet) GetRandomAction() (*Action, int) {
 		return this.queue[0], 0
 	}
 
-	var indexSet []int = make([]int, 0)
+	index := rand.Intn(l)
 
-	for index, action := range this.queue {
-		if action.usable {
-			indexSet = append(indexSet, index)
-		}
-		action.usable = false
-	}
-
-	index := 0
-	if len(indexSet) > 0 {
-		i := rand.Intn(len(indexSet))
-		index = indexSet[i]
-	} else {
-		index = rand.Intn(l)
-	}
 	return this.queue[index], index
 }
 
@@ -172,7 +162,7 @@ func (this *ActionSet) GetEpGreAction() (*Action, int) {
 	if x < config.GetEpsilon() {
 		return this.GetRandomAction()
 	} else {
-		return this.GetMaxRewardAction()
+		return this.GetMaxQAction()
 	}
 }
 

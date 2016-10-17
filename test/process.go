@@ -46,8 +46,8 @@ func Start(a, g *net.TCPConn, cr *bufio.Reader) {
 	ape = a
 	guider = g
 	crashReader = cr
-	//	setKey(FALSE, "", "")
-	//	return
+	//setKey(FALSE, "", "")
+	//return
 
 	//start logcat
 	go startObserver()
@@ -131,11 +131,7 @@ func Start(a, g *net.TCPConn, cr *bufio.Reader) {
 			tb = NewAction("key down 82")
 			mTest.ActSet.AddAction(tb)
 		} else {
-			tb := NewAction("trackball 0 -100")
-			mTest.ActSet.AddAction(tb)
-			tb = NewAction("trackball -100 0")
-			mTest.ActSet.AddAction(tb)
-			tb = NewAction("key down 82")
+			tb := NewAction("key down 82")
 			mTest.ActSet.AddAction(tb)
 		}
 

@@ -76,7 +76,7 @@ func (this *ActionSet) AdjustQ(index, index2 int, reward float64) {
 
 	action := this.queue[index]
 	action2 := this.queue[index2]
-	action.Q = action.Q + 0.8*(reward+0.8*action2.Q-action.Q)
+	action.Q = action.Q + config.GetAlpha()*(reward+config.GetGamma()*action2.Q-action.Q)
 }
 
 //Get the action with the maximal reward
@@ -158,7 +158,7 @@ func (this *ActionSet) GetRandomAction() (*Action, int) {
 
 //Get an action based on epsilon-greedy algorithm
 func (this *ActionSet) GetEpGreAction() (*Action, int) {
-	x := rand.Float32()
+	x := rand.Float64()
 	if x < config.GetEpsilon() {
 		return this.GetRandomAction()
 	} else {

@@ -196,6 +196,10 @@ func Start(a, g *net.TCPConn, cr *bufio.Reader) {
 					//Little views change, so it is unchanged
 				}
 
+				if isOut && rs.GetKind() <= R_FINISH {
+					rs.SetKind(R_FINISH)
+				}
+
 				//Step4. Adjust Q of this action
 				_, index2 := mTest.ActSet.GetEpGreAction()
 				feedback := Reward(mTest.ActSet, index, index2, rs, name, int64(time.Now().Sub(startTime).Seconds()))
@@ -429,7 +433,7 @@ func Reward(set *ActionSet, index, index2 int, result Result, parent string, tim
 		}
 	case R_FINISH:
 		//I don't want to finish
-		set.AdjustQ(index, index2, 0)
+		set.AdjustQ(index, index2, -1)
 	case R_NOCHANGE:
 		set.AdjustQ(index, index2, 0)
 	case R_CRASH:

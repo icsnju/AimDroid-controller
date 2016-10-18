@@ -30,6 +30,7 @@ var crashIndex int = 0
 
 type Result interface {
 	GetKind() int
+	SetKind(int)
 	ToString() string
 }
 

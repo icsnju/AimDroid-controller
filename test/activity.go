@@ -143,7 +143,7 @@ func (this *ActivityQueue) Save(out string) {
 	util.FatalCheck(err)
 	fs.WriteString("Find activities " + strconv.Itoa(len(this.set)) + ":\n")
 	for act, test := range this.set {
-		fs.WriteString(act + "\t" + test.Act.parent + "\t" + strconv.FormatInt(test.Act.findTime, 10) + "\t" + test.Act.intent + "\n")
+		fs.WriteString(act + "\t" + strconv.FormatInt(test.Act.findTime, 10) + "\n")
 	}
 	fs.Close()
 

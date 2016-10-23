@@ -57,7 +57,7 @@ type ActivityResult struct {
 }
 
 func (this *ActivityResult) ToString() string {
-	return "activity[" + this.name + "][" + this.intent + "]"
+	return "activity@" + this.name + "@" + this.intent + "@"
 }
 
 func (this *ActivityResult) GetContent() (string, string) {
@@ -84,7 +84,7 @@ func (this *CrashResult) GetContent() string {
 }
 
 func (this *CrashResult) ToString() string {
-	return "Crash[" + strconv.Itoa(this.index) + "]"
+	return "crash@" + strconv.Itoa(this.index) + "@"
 }
 
 func (this *CrashResult) AddLine(line string) {

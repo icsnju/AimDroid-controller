@@ -82,7 +82,7 @@ func (this *Test) Save(out string) {
 			fs.WriteString(action.getContent())
 			rs, ex := seq.tag[j]
 			if ex {
-				fs.WriteString(" " + rs.ToString())
+				fs.WriteString("@" + rs.ToString())
 				cr, ok := rs.(*CrashResult)
 				if ok {
 					cr.Save(crashDir)
@@ -98,10 +98,7 @@ func (this *Test) Save(out string) {
 	fs, err = os.OpenFile(edgeFile, os.O_CREATE|os.O_RDWR, os.ModePerm)
 	util.FatalCheck(err)
 
-	for name, e := range this.Find {
-		fs.WriteString(name + " ")
-		util.FatalCheck(err)
-
+	for _, e := range this.Find {
 		content, err := json.Marshal(e)
 		if err == nil {
 			fs.Write(content)

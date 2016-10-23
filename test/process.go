@@ -251,7 +251,7 @@ func startThisActivity(act *Activity, haveCrash bool) bool {
 	//kill this app started last time
 	android.ClearApp(config.GetPackageName())
 	time.Sleep(time.Millisecond * 500)
-	if haveCrash {
+	if haveCrash && len(act.GetParent()) > 0 {
 		return startThisActivityFromParent(act.GetParent(), act.GetName())
 	} else {
 		return startThisActivityDirectly(act.Get())

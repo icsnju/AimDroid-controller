@@ -315,7 +315,7 @@ func startThisActivityFromParent(parent, me string) bool {
 func currentActIsRight(name string) bool {
 	cn := android.GetCurrentActivity()
 	count := 0
-	for name != cn {
+	for name != cn && cn != ".permission.ui.GrantPermissionsActivity" {
 		count++
 		if count > MAX_TRY {
 			break
@@ -323,7 +323,7 @@ func currentActIsRight(name string) bool {
 		time.Sleep(time.Millisecond * 1000)
 		cn = android.GetCurrentActivity()
 	}
-	return name == cn
+	return name == cn || cn == ".permission.ui.GrantPermissionsActivity"
 }
 
 //Set the key of guider

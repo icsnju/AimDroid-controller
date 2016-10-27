@@ -92,7 +92,7 @@ func StartMonkey(pkg string) (string, error) {
 //start logcat
 func StartApe(port string) (*bufio.Reader, error) {
 
-	content := adb + " shell monkey --ignore-crashes --ignore-timeouts --ignore-native-crashes --port " + port
+	content := adb + " shell ape --ignore-crashes --ignore-timeouts --ignore-native-crashes --port " + port
 	cmd := util.CreateCmd(content)
 
 	// Create stdout, stderr streams of type io.Reader

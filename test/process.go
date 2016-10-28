@@ -63,7 +63,7 @@ func Start(a, g *net.TCPConn, cr *bufio.Reader) {
 	time.Sleep(time.Millisecond * 3000)
 
 	//Get currently focused activity
-	root := android.GetCurrentActivity()
+	root := android.GetCurrentActivity(config.GetMainActivity())
 	//Create the first activity
 	gActivityQueue.Enqueue(root, "", "", int64(time.Now().Sub(startTime).Seconds()))
 
@@ -99,7 +99,7 @@ func Start(a, g *net.TCPConn, cr *bufio.Reader) {
 		if !currentActIsRight(name) {
 			//In a wrong activity
 			rs := mTest.Cache.filterResult()
-			log.Println("Cannot start activity. You are in a wrong activity", android.GetCurrentActivity(), rs.GetKind())
+			log.Println("Cannot start activity. You are in a wrong activity", android.GetCurrentActivity(""), rs.GetKind())
 
 			cr, ok := rs.(*CrashResult)
 			if ok {
@@ -313,17 +313,17 @@ func startThisActivityFromParent(parent, me string) bool {
 
 //If this current focused activity is right
 func currentActIsRight(name string) bool {
-	cn := android.GetCurrentActivity()
+	cn := android.GetCurrentActivity(name)
 	count := 0
-	for name != cn && cn != ".permission.ui.GrantPermissionsActivity" {
+	for name != cn {
 		count++
 		if count > MAX_TRY {
 			break
 		}
 		time.Sleep(time.Millisecond * 1000)
-		cn = android.GetCurrentActivity()
+		cn = android.GetCurrentActivity(name)
 	}
-	return name == cn || cn == ".permission.ui.GrantPermissionsActivity"
+	return name == cn
 }
 
 //Set the key of guider

@@ -118,7 +118,7 @@ func Forward(pcPort, mobilePort string) error {
 }
 
 //get current focused activity
-func GetCurrentActivity() string {
+func GetCurrentActivity(want string) string {
 	name := ""
 	cmd := adb + " shell dumpsys activity activities | grep mFocusedActivity"
 	out, err := util.ExeCmd(cmd)
@@ -142,6 +142,9 @@ func GetCurrentActivity() string {
 		if len(names) == 2 {
 			name = names[1]
 		}
+	}
+	if name == ".permission.ui.GrantPermissionsActivity" && len(want) > 0 {
+		name = want
 	}
 	return name
 }

@@ -20,8 +20,9 @@ const (
 	TRUE  = "true"
 	FALSE = "false"
 
-	APE_TREE = "tree"
-	APE_SIZE = "size"
+	APE_TREE   = "tree"
+	APE_LAUNCH = "launch"
+	APE_SIZE   = "size"
 )
 
 var gActivityQueue *ActivityQueue = nil
@@ -59,7 +60,8 @@ func Start(a, g *net.TCPConn, cr *bufio.Reader) {
 	//It is first time to launch this app
 	android.ClearApp(config.GetPackageName())
 	time.Sleep(time.Millisecond * 1000)
-	android.LaunchApp(config.GetPackageName(), config.GetMainActivity())
+	//android.LaunchApp(config.GetPackageName(), config.GetMainActivity())
+	sendCommandToApe(APE_LAUNCH + " " + config.GetPackageName() + " " + config.GetMainActivity())
 	time.Sleep(time.Millisecond * 3000)
 
 	//Get currently focused activity
@@ -262,7 +264,9 @@ func startThisActivityDirectly(name, intent string) bool {
 	//reset the key
 	setKey(FALSE, name, intent)
 	//launch app
-	android.LaunchApp(config.GetPackageName(), config.GetMainActivity())
+	//android.LaunchApp(config.GetPackageName(), config.GetMainActivity())
+	sendCommandToApe(APE_LAUNCH + " " + config.GetPackageName() + " " + config.GetMainActivity())
+
 	time.Sleep(time.Millisecond * 2000)
 	ok := currentActIsRight(name)
 	//set the key

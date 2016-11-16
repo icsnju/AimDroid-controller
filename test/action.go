@@ -69,7 +69,7 @@ func (this *ActionSet) AddAction(action *Action) bool {
 	return true
 }
 
-//Adjust reward of an action
+//Adjust reward of an action with SARSA
 func (this *ActionSet) AdjustQ(index, index2 int, reward float64) {
 	index = (index + len(this.queue)) % len(this.queue)
 	index2 = (index2 + len(this.queue)) % len(this.queue)

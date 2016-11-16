@@ -120,22 +120,17 @@ func Start(a, g *net.TCPConn, cr *bufio.Reader) {
 		time.Sleep(time.Millisecond * 1000)
 		mTest.Cache.filterAction(mTest.ActSet)
 
-		if mTest.ActSet.GetCount() <= 0 {
-			//Add some basic trackball events
-			tb := NewAction("trackball 100 0")
-			mTest.ActSet.AddAction(tb)
-			tb = NewAction("trackball -100 0")
-			mTest.ActSet.AddAction(tb)
-			tb = NewAction("trackball 0 100")
-			mTest.ActSet.AddAction(tb)
-			tb = NewAction("trackball 0 -100")
-			mTest.ActSet.AddAction(tb)
-			tb = NewAction("key down 82")
-			mTest.ActSet.AddAction(tb)
-		} else {
-			tb := NewAction("key down 82")
-			mTest.ActSet.AddAction(tb)
-		}
+		//Add some basic trackball events
+		tb := NewAction("trackball 100 0")
+		mTest.ActSet.AddAction(tb)
+		tb = NewAction("trackball -100 0")
+		mTest.ActSet.AddAction(tb)
+		tb = NewAction("trackball 0 100")
+		mTest.ActSet.AddAction(tb)
+		tb = NewAction("trackball 0 -100")
+		mTest.ActSet.AddAction(tb)
+		tb = NewAction("key down 82")
+		mTest.ActSet.AddAction(tb)
 
 		log.Println("2. Initial actions count:", mTest.ActSet.GetCount(), ", start to test activity..")
 

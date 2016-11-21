@@ -281,13 +281,8 @@ func (this *Test) addEdge(rs Result, step int) {
 		act, ok := rs.(*ActivityResult)
 		if ok {
 			name, _ := act.GetContent()
-			edge, ex := this.Find[name]
-			if ex {
-				if edge.StepLen > step {
-					edge.SeqIndex = len(this.SequenceArray)
-					edge.StepLen = step
-				}
-			} else {
+			_, ex := this.Find[name]
+			if !ex {
 				ne := new(AAEdge)
 				ne.SeqIndex = len(this.SequenceArray)
 				ne.StepLen = step

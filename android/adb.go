@@ -19,11 +19,11 @@ func LaunchApp(pck, act string) error {
 }
 
 //Kill an application
-//func KillApp(pck string) error {
-//	cmd := adb + " shell am force-stop " + pck
-//	_, err := util.ExeCmd(cmd)
-//	return err
-//}
+func KillApp(pck string) error {
+	cmd := adb + " shell am force-stop " + pck
+	_, err := util.ExeCmd(cmd)
+	return err
+}
 
 func ClearApp(pck string) error {
 	cmd := adb + " shell pm clear " + pck
@@ -89,7 +89,7 @@ func StartMonkey(pkg string) (string, error) {
 	//return "", nil
 }
 
-//start logcat
+//start ape
 func StartApe(port string) (*bufio.Reader, error) {
 
 	content := adb + " shell ape --ignore-crashes --ignore-timeouts --ignore-native-crashes --port " + port
@@ -108,6 +108,15 @@ func StartApe(port string) (*bufio.Reader, error) {
 
 	read := bufio.NewReader(stdout)
 	return read, nil
+}
+
+//kill ape
+func KillApe() {
+	cmd := adb + " shell ps | awk '/com.android.commands.monkey/ { system(\"adb shell kill \" $2)}'"
+	_, err := util.ExeCmd(cmd)
+	if err != nil {
+		log.Println("Cannot kill ape!", err)
+	}
 }
 
 //adb forward

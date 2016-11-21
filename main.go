@@ -47,6 +47,7 @@ func main() {
 //Start ape server
 func startApeServer() (*net.TCPConn, *bufio.Reader) {
 	log.Println("Start ape server..")
+	android.KillApe()
 	//Adb forward tcp
 	err := android.Forward(MY_APE_PORT, YOUR_APE_PORT)
 	util.FatalCheck(err)

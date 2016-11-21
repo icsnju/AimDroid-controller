@@ -59,9 +59,10 @@ func Start(a, g *net.TCPConn, cr *bufio.Reader) {
 
 	//It is first time to launch this app
 	android.ClearApp(config.GetPackageName())
+	//android.KillApp(config.GetPackageName())
 	time.Sleep(time.Millisecond * 1000)
-	//android.LaunchApp(config.GetPackageName(), config.GetMainActivity())
-	sendCommandToApe(APE_LAUNCH + " " + config.GetPackageName() + " " + config.GetMainActivity())
+	android.LaunchApp(config.GetPackageName(), config.GetMainActivity())
+	//sendCommandToApe(APE_LAUNCH + " " + config.GetPackageName() + " " + config.GetMainActivity())
 	time.Sleep(time.Millisecond * 3000)
 
 	//Get currently focused activity
@@ -108,9 +109,8 @@ func Start(a, g *net.TCPConn, cr *bufio.Reader) {
 				cout := path.Join("out", config.GetPackageName(), name, "Crash")
 				cr.Save(cout)
 				gActivityQueue.AddCrash(name+"@launch activity", -1)
-				mTest.HaveCrash = true
 			}
-
+			mTest.HaveCrash = true
 			gActivityQueue.EnOldQueue(activity)
 			continue
 		}
@@ -133,6 +133,9 @@ func Start(a, g *net.TCPConn, cr *bufio.Reader) {
 		mTest.ActSet.AddAction(tb)
 
 		log.Println("2. Initial actions count:", mTest.ActSet.GetCount(), ", start to test activity..")
+		if mTest.ActSet.GetCount() == 5 {
+			mTest.HaveCrash = true
+		}
 
 		//Step3: send event
 		log.Println("3. Start send action")
@@ -190,6 +193,8 @@ func Start(a, g *net.TCPConn, cr *bufio.Reader) {
 					sendCommandToApe(APE_TREE)
 					time.Sleep(time.Millisecond * 1000)
 					mTest.Cache.filterAction(mTest.ActSet)
+					tb = NewAction("key down 82")
+					mTest.ActSet.AddAction(tb)
 					//Little views change, so it is unchanged
 				}
 
@@ -246,7 +251,7 @@ func Start(a, g *net.TCPConn, cr *bufio.Reader) {
 //Start an activity
 func startThisActivity(act *Activity, haveCrash bool) bool {
 	//kill this app started last time
-	android.ClearApp(config.GetPackageName())
+	android.KillApp(config.GetPackageName())
 	time.Sleep(time.Millisecond * 500)
 	if haveCrash && len(act.GetParent()) > 0 {
 		return startThisActivityFromParent(act.GetParent(), act.GetName())
@@ -259,8 +264,8 @@ func startThisActivityDirectly(name, intent string) bool {
 	//reset the key
 	setKey(FALSE, name, intent)
 	//launch app
-	//android.LaunchApp(config.GetPackageName(), config.GetMainActivity())
-	sendCommandToApe(APE_LAUNCH + " " + config.GetPackageName() + " " + config.GetMainActivity())
+	android.LaunchApp(config.GetPackageName(), config.GetMainActivity())
+	//sendCommandToApe(APE_LAUNCH + " " + config.GetPackageName() + " " + config.GetMainActivity())
 
 	time.Sleep(time.Millisecond * 2000)
 	ok := currentActIsRight(name)

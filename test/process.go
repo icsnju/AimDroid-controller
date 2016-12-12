@@ -58,8 +58,12 @@ func Start(a, g *net.TCPConn, cr *bufio.Reader) {
 	setKey(FALSE, "", "")
 
 	//It is first time to launch this app
-	android.ClearApp(config.GetPackageName())
-	//android.KillApp(config.GetPackageName())
+	if config.GetClearData() {
+		android.ClearApp(config.GetPackageName())
+	} else {
+		android.KillApp(config.GetPackageName())
+	}
+
 	time.Sleep(time.Millisecond * 1000)
 	android.LaunchApp(config.GetPackageName(), config.GetMainActivity())
 	//sendCommandToApe(APE_LAUNCH + " " + config.GetPackageName() + " " + config.GetMainActivity())
@@ -225,7 +229,7 @@ func Start(a, g *net.TCPConn, cr *bufio.Reader) {
 			}
 			//Restart this activity
 			if times > 0 {
-				ok := startThisActivity(activity, mTest.HaveCrash)
+				ok := startThisActivity(activity, true)
 				if !ok {
 					break
 				}
@@ -242,7 +246,9 @@ func Start(a, g *net.TCPConn, cr *bufio.Reader) {
 	setKey(FALSE, "", "")
 
 	//stop application
-	android.ClearApp(config.GetPackageName())
+	if config.GetClearData() {
+		android.ClearApp(config.GetPackageName())
+	}
 
 	log.Println(gActivityQueue.ToString())
 	gActivityQueue.Save("out/" + config.GetPackageName())
@@ -251,7 +257,12 @@ func Start(a, g *net.TCPConn, cr *bufio.Reader) {
 //Start an activity
 func startThisActivity(act *Activity, haveCrash bool) bool {
 	//kill this app started last time
-	android.KillApp(config.GetPackageName())
+	if config.GetClearData() {
+		android.ClearApp(config.GetPackageName())
+	} else {
+		android.KillApp(config.GetPackageName())
+	}
+
 	time.Sleep(time.Millisecond * 500)
 	if haveCrash && len(act.GetParent()) > 0 {
 		return startThisActivityFromParent(act.GetParent(), act.GetName())
@@ -305,6 +316,7 @@ func startThisActivityFromParent(parent, me string) bool {
 		}
 		sendCommandToApe(action.content)
 		if find {
+			log.Println("find target:", me)
 			break
 		}
 	}

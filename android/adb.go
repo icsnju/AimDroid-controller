@@ -15,6 +15,9 @@ var adb string = "adb"
 func LaunchApp(pck, act string) error {
 	cmd := adb + " shell am start -n " + pck + "/" + act
 	_, err := util.ExeCmd(cmd)
+	if err != nil {
+		log.Println(err)
+	}
 	return err
 }
 

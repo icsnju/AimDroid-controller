@@ -16,10 +16,11 @@ type Configure struct {
 	MaxSeqLen    int
 	MinSeqLen    int
 	Time         int
+	ClearData    bool
 }
 
-var configPath = "config/configure.json"
-var configuration *Configure = &Configure{"", "", "", 0.2, 0.5, 0.5, 50, 10, 1800}
+var configPath = "configure.json"
+var configuration *Configure = &Configure{"", "", "", 0.2, 0.5, 0.5, 50, 10, 1800, false}
 
 func InitConfig() {
 	log.Println("Init configuration..")
@@ -72,4 +73,8 @@ func GetMinSeqLen() int {
 
 func GetTime() int {
 	return configuration.Time
+}
+
+func GetClearData() bool {
+	return configuration.ClearData
 }

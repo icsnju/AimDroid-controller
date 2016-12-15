@@ -24,6 +24,8 @@ const (
 	LOG_ACTION     = "action"
 	LOG_ACTION_END = "end"
 	LOG_SIZE       = "size"
+	LOG_MINITRACE  = "minitrace"
+	LOG_SUCCEED    = "succeed"
 )
 
 var crashIndex int = 0

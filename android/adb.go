@@ -21,18 +21,40 @@ func LaunchApp(pck, act string) error {
 	return err
 }
 
-//Kill an application
-func KillApp(pck string) error {
-	cmd := adb + " shell am force-stop " + pck
-	_, err := util.ExeCmd(cmd)
-	return err
+//kill ape
+func KillProApp(pck string) {
+	cmd := adb + " shell ps | grep " + pck
+	out, err := util.ExeCmd(cmd)
+	if err != nil || len(out) <= 0 {
+		log.Println(pck, "is not running.")
+		return
+	}
+
+	iterms := strings.Fields(out)
+	if len(iterms) >= 9 {
+		pid := iterms[1]
+		cmd = adb + " shell su -c kill " + pid
+		_, err = util.ExeCmd(cmd)
+
+		if err != nil {
+			log.Println("Cannot kill", pck)
+		}
+	}
+
 }
 
-func ClearApp(pck string) error {
-	cmd := adb + " shell pm clear " + pck
-	_, err := util.ExeCmd(cmd)
-	return err
-}
+//Kill an application
+//func KillApp(pck string) error {
+//	cmd := adb + " shell am force-stop " + pck
+//	_, err := util.ExeCmd(cmd)
+//	return err
+//}
+
+//func ClearApp(pck string) error {
+//	cmd := adb + " shell pm clear " + pck
+//	_, err := util.ExeCmd(cmd)
+//	return err
+//}
 
 func InitADB(sdk string) {
 	adb = path.Join(sdk, "platform-tools/adb")
@@ -46,7 +68,7 @@ func StartLogcat() (*bufio.Reader, error) {
 		return nil, err
 	}
 
-	cmd := util.CreateCmd(adb + " logcat Monitor_Log:V *:S")
+	cmd := util.CreateCmd(adb + " logcat Monitor_Log:V art:I *:S")
 
 	// Create stdout, stderr streams of type io.Reader
 	stdout, err := cmd.StdoutPipe()
@@ -115,11 +137,24 @@ func StartApe(port string) (*bufio.Reader, error) {
 
 //kill ape
 func KillApe() {
-	cmd := adb + " shell ps | awk '/com.android.commands.monkey/ { system(\"adb shell kill \" $2)}'"
-	_, err := util.ExeCmd(cmd)
-	if err != nil {
-		log.Println("Cannot kill ape!", err)
+	cmd := adb + " shell ps | grep com.android.commands.monkey"
+	out, err := util.ExeCmd(cmd)
+	if err != nil || len(out) <= 0 {
+		log.Println("Ape is not running.")
+		return
 	}
+
+	iterms := strings.Fields(out)
+	if len(iterms) >= 9 {
+		pid := iterms[1]
+		cmd = adb + " shell su -c kill " + pid
+		_, err = util.ExeCmd(cmd)
+
+		if err != nil {
+			log.Println("Cannot kill ape!", err)
+		}
+	}
+
 }
 
 //adb forward

@@ -4,6 +4,8 @@ import (
 	"log"
 	"math/rand"
 	"monidroid/config"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -57,6 +59,15 @@ func (this *ActionSet) GetAction(index int) *Action {
 //Add an action in set.
 //If this is an new action, return true. Otherwise, return false.
 func (this *ActionSet) AddAction(action *Action) bool {
+	content := action.getContent()
+	iterms := strings.Fields(content)
+	if iterms[0] == "tap" {
+		x, _ := strconv.Atoi(iterms[1])
+		y, _ := strconv.Atoi(iterms[2])
+		if x > gX || y > gY {
+			return false
+		}
+	}
 	index, exist := this.set[action.content]
 	if exist {
 		me := this.queue[index]

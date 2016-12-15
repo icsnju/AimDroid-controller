@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"log"
+	"minitrace/trace"
 	"monidroid/android"
 	"monidroid/config"
 	"monidroid/test"
@@ -30,6 +31,10 @@ func main() {
 	config.InitConfig()
 	android.InitADB(config.GetSDKPath())
 
+	//push config to the device
+	trace.InitADB(config.GetSDKPath())
+	trace.PushConfig(config.GetPackageName())
+
 	//start ape server
 	apeIn, apeOut := startApeServer()
 	defer closeApe(apeIn)
@@ -40,8 +45,10 @@ func main() {
 
 	//start test
 	test.Start(apeIn, guider, apeOut)
+
 	t2 := time.Now()
 	log.Println(t2.Sub(t1).Seconds())
+
 }
 
 //Start ape server
@@ -64,7 +71,7 @@ func startApeServer() (*net.TCPConn, *bufio.Reader) {
 //Start guider server
 func startGuiderServer() *net.TCPConn {
 	log.Println("Start guider server..")
-	android.ClearApp(GUIDER_PACKAGE_NAME)
+	android.KillProApp(GUIDER_PACKAGE_NAME)
 	//Adb forward tcp
 	err := android.Forward(MY_GUIDER_PORT, YOUR_GUIDER_PORT)
 	util.FatalCheck(err)
@@ -100,5 +107,5 @@ func closeApe(ape *net.TCPConn) {
 func closeGuider(guider *net.TCPConn) {
 	guider.Close()
 	//stop guider service
-	android.ClearApp(GUIDER_PACKAGE_NAME)
+	android.KillProApp(GUIDER_PACKAGE_NAME)
 }

@@ -9,7 +9,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"time"
 )
 
 const MAX_TRY = 5
@@ -18,7 +17,6 @@ type Test struct {
 	Act           *Activity
 	ActSet        *ActionSet
 	SequenceArray []*ActionSequence
-	Cache         *LogCache
 	Find          map[string]*AAEdge
 	HaveCrash     bool
 }
@@ -27,7 +25,6 @@ func NewTest() *Test {
 	t := new(Test)
 	t.Act = nil
 	t.ActSet = NewActionSet()
-	t.Cache = NewLogCache()
 	t.SequenceArray = make([]*ActionSequence, 0)
 	t.Find = make(map[string]*AAEdge)
 	t.HaveCrash = false
@@ -112,99 +109,126 @@ func (this *Test) Save(out string) {
 
 //Put device log into this cache
 type LogCache struct {
-	logs []string
-	lock *sync.Mutex
+	rlogs []string //result
+	clogs []string //crash
+	alogs []string //actions
+	rlock *sync.Mutex
+	clock *sync.Mutex
+	alock *sync.Mutex
 }
 
 func NewLogCache() *LogCache {
-	return &LogCache{make([]string, 0), new(sync.Mutex)}
+	return &LogCache{make([]string, 0), make([]string, 0), make([]string, 0), new(sync.Mutex), new(sync.Mutex), new(sync.Mutex)}
 }
 
-func (this *LogCache) add(line string) {
-	this.lock.Lock()
-	defer this.lock.Unlock()
-	this.logs = append(this.logs, line)
+func (this *LogCache) addR(line string) {
+	this.rlock.Lock()
+	defer this.rlock.Unlock()
+	this.rlogs = append(this.rlogs, line)
 }
 
-func (this *LogCache) clear() {
-	this.lock.Lock()
-	defer this.lock.Unlock()
-	this.logs = make([]string, 0)
+func (this *LogCache) clearR() {
+	this.rlock.Lock()
+	defer this.rlock.Unlock()
+	this.rlogs = make([]string, 0)
+}
+
+func (this *LogCache) addC(line string) {
+	this.clogs = append(this.clogs, line)
+}
+
+func (this *LogCache) clearC() {
+	this.clock.Lock()
+	defer this.clock.Unlock()
+	this.clogs = make([]string, 0)
+}
+
+func (this *LogCache) clearRC() {
+	this.clearR()
+	this.clearC()
+}
+
+func (this *LogCache) addA(line string) {
+	this.alogs = append(this.alogs, line)
+}
+
+func (this *LogCache) clearA() {
+	this.alock.Lock()
+	defer this.alock.Unlock()
+	this.alogs = make([]string, 0)
+}
+
+func (this *LogCache) clearAll() {
+	this.clearRC()
+	this.clearA()
 }
 
 //Filter out actions from the logs
 func (this *LogCache) filterAction(set *ActionSet) int {
 	count := 0
-	goon := 0
-	for {
-		this.lock.Lock()
-		goon++
-		for _, line := range this.logs {
-			iterms := strings.Split(line, "@")
-			if len(iterms) >= 3 && iterms[1] == LOG_ACTION {
-				if LOG_ACTION_END == iterms[2] {
-					goon = MAX_TRY
-					break
-				}
-				a := NewAction(iterms[2])
-				ok := set.AddAction(a)
-				if ok {
-					count++
-				}
+
+	this.alock.Lock()
+
+	for _, line := range this.alogs {
+		iterms := strings.Split(line, "@")
+		if len(iterms) >= 3 && iterms[1] == LOG_ACTION {
+			if LOG_ACTION_END == iterms[2] {
+				break
+			}
+			a := NewAction(iterms[2])
+			ok := set.AddAction(a)
+			if ok {
+				count++
 			}
 		}
-		//clear the log cache
-		this.logs = make([]string, 0)
-		this.lock.Unlock()
-		if goon >= MAX_TRY {
-			break
-		}
-		time.Sleep(500 * time.Millisecond)
 	}
+	//clear the log cache
+	this.alogs = make([]string, 0)
+
+	this.alock.Unlock()
+
 	return count
 }
 
 //Filter out size from the logs
-func (this *LogCache) filterSize() (int, int) {
-	this.lock.Lock()
-	defer this.lock.Unlock()
-	x := 0
-	y := 0
-	for _, line := range this.logs {
-		iterms := strings.Split(string(line), "@")
-		if len(iterms) >= 4 && iterms[1] == LOG_SIZE {
-			xs := iterms[2]
-			ys := iterms[3]
-			var err error
-			x, err = strconv.Atoi(xs)
-			if err != nil {
-				log.Println("Size x err:", err)
-				continue
-			}
-			y, err = strconv.Atoi(ys)
-			if err != nil {
-				log.Println("Size y err:", err)
-				continue
-			}
-			break
-		}
-	}
-	//clear the log cache
-	this.logs = make([]string, 0)
-	return x, y
-}
+//func (this *LogCache) filterSize() (int, int) {
+//	this.lock.Lock()
+//	defer this.lock.Unlock()
+//	x := 0
+//	y := 0
+//	for _, line := range this.logs {
+//		iterms := strings.Split(string(line), "@")
+//		if len(iterms) >= 4 && iterms[1] == LOG_SIZE {
+//			xs := iterms[2]
+//			ys := iterms[3]
+//			var err error
+//			x, err = strconv.Atoi(xs)
+//			if err != nil {
+//				log.Println("Size x err:", err)
+//				continue
+//			}
+//			y, err = strconv.Atoi(ys)
+//			if err != nil {
+//				log.Println("Size y err:", err)
+//				continue
+//			}
+//			break
+//		}
+//	}
+//	//clear the log cache
+//	this.logs = make([]string, 0)
+//	return x, y
+//}
 
 //Filter out the results from the logs
 func (this *LogCache) filterResult() Result {
 
 	var result Result
 	level := R_NOCHANGE
-	var rr *CrashResult = nil
-	isCrash := false
 
-	this.lock.Lock()
-
-	for i, line := range this.logs {
+	//find normal results
+	this.rlock.Lock()
+	for _, line := range this.rlogs {
 		iterms := strings.Split(string(line), "@")
 		if len(iterms) >= 2 {
 			switch iterms[1] {
@@ -223,23 +247,6 @@ func (this *LogCache) filterResult() Result {
 					result = &CommonResult{R_CHANGE}
 					level = R_CHANGE
 				}
-			case LOG_CRASH:
-				if R_CRASH > level {
-					level = R_CRASH
-					rr = NewCrashResult()
-					result = rr
-					isCrash = true
-					l := len(this.logs)
-					for j := i; j < l; j++ {
-						rr.AddLine(this.logs[j])
-						//Find the end of this crash
-						if this.logs[j] == LOG_CRASH_END {
-							isCrash = false
-							break
-						}
-					}
-					break
-				}
 			default:
 				log.Println("Unknown result:", line)
 			}
@@ -248,27 +255,23 @@ func (this *LogCache) filterResult() Result {
 			log.Println("Unknown result:", line)
 		}
 	}
-	//clear the log cache
-	this.logs = make([]string, 0)
-	this.lock.Unlock()
+	//clear the rlog cache
+	this.rlogs = make([]string, 0)
+	this.rlock.Unlock()
 
-	tryTimes := 0
-	if isCrash && tryTimes < MAX_TRY {
-		tryTimes++
-		//There some logs don't come
-		time.Sleep(time.Millisecond * 500)
-		this.lock.Lock()
-		for _, line := range this.logs {
-			rr.AddLine(line)
-			//Find the end of this crash
-			if line == LOG_CRASH_END {
-				isCrash = false
-				break
-			}
+	//find crash
+	this.clock.Lock()
+	if len(this.clogs) > 0 {
+		level = R_CRASH
+		var rr *CrashResult = NewCrashResult()
+		result = rr
+		l := len(this.clogs)
+		for j := 0; j < l; j++ {
+			rr.AddLine(this.clogs[j])
 		}
-		this.logs = make([]string, 0)
-		this.lock.Unlock()
+		this.clogs = make([]string, 0)
 	}
+	this.clock.Unlock()
 
 	if level == R_NOCHANGE {
 		result = &CommonResult{R_NOCHANGE}

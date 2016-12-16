@@ -61,7 +61,7 @@ func (this *ActionSet) GetAction(index int) *Action {
 func (this *ActionSet) AddAction(action *Action) bool {
 	content := action.getContent()
 	iterms := strings.Fields(content)
-	if iterms[0] == "tap" {
+	if len(iterms) >= 3 && iterms[0] == "tap" {
 		x, _ := strconv.Atoi(iterms[1])
 		y, _ := strconv.Atoi(iterms[2])
 		if x > gX || y > gY {

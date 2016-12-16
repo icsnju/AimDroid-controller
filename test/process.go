@@ -75,7 +75,7 @@ func Start(a, g *net.TCPConn, cr *bufio.Reader) {
 	//	} else {
 	//		android.KillApp(config.GetPackageName())
 	//	}
-	android.KillProApp(config.GetPackageName())
+	android.KillApp(config.GetPackageName())
 
 	time.Sleep(time.Millisecond * 1000)
 	android.LaunchApp(config.GetPackageName(), config.GetMainActivity())
@@ -112,9 +112,9 @@ func Start(a, g *net.TCPConn, cr *bufio.Reader) {
 
 		gLogCache.clearAll()
 
-		log.Println("1. Start activity to generate actions..", activity.name)
 		//Step1.2: start this activity
 		killStartThisActivity(activity, mTest.HaveCrash)
+		log.Println("1. Start activity", activity.name)
 
 		if !currentActIsRight(name, MAX_TRY) {
 			//In a wrong activity
@@ -237,11 +237,11 @@ func Start(a, g *net.TCPConn, cr *bufio.Reader) {
 			}
 			//Restart this activity
 			if times > 0 {
-				log.Println("I want to test this Activity again:", activity.GetName())
 				ok := killStartThisActivity(activity, mTest.HaveCrash)
 				if !ok {
 					break
 				}
+				log.Println("4. I want to test this Activity again:", activity.GetName())
 			}
 		}
 		//Step5. Save results of this activity
@@ -258,6 +258,7 @@ func Start(a, g *net.TCPConn, cr *bufio.Reader) {
 	traceChan <- TRACE_DUMP
 	<-traceBackChan
 	traceChan <- TRACE_STOP
+	<-traceBackChan
 
 	//stop application
 	//	if config.GetClearData() {
@@ -265,7 +266,7 @@ func Start(a, g *net.TCPConn, cr *bufio.Reader) {
 	//	} else {
 	//		android.KillProApp(config.GetPackageName())
 	//	}
-	android.KillProApp(config.GetPackageName())
+	android.KillApp(config.GetPackageName())
 
 	log.Println(gActivityQueue.ToString())
 	gActivityQueue.Save("out/" + config.GetPackageName())
@@ -276,7 +277,7 @@ func killStartThisActivity(act *Activity, haveCrash bool) bool {
 	traceChan <- TRACE_DUMP
 	<-traceBackChan
 
-	android.KillProApp(config.GetPackageName())
+	android.KillApp(config.GetPackageName())
 	time.Sleep(time.Millisecond * 500)
 
 	return startThisActivity(act, haveCrash)

@@ -22,39 +22,39 @@ func LaunchApp(pck, act string) error {
 }
 
 //kill ape
-func KillProApp(pck string) {
-	cmd := adb + " shell ps | grep " + pck
-	out, err := util.ExeCmd(cmd)
-	if err != nil || len(out) <= 0 {
-		log.Println(pck, "is not running.")
-		return
-	}
+//func KillProApp(pck string) {
+//	cmd := adb + " shell ps | grep " + pck
+//	out, err := util.ExeCmd(cmd)
+//	if err != nil || len(out) <= 0 {
+//		log.Println(pck, "is not running.")
+//		return
+//	}
 
-	iterms := strings.Fields(out)
-	if len(iterms) >= 9 {
-		pid := iterms[1]
-		cmd = adb + " shell su -c kill " + pid
-		_, err = util.ExeCmd(cmd)
+//	iterms := strings.Fields(out)
+//	if len(iterms) >= 9 {
+//		pid := iterms[1]
+//		cmd = adb + " shell su -c kill " + pid
+//		_, err = util.ExeCmd(cmd)
 
-		if err != nil {
-			log.Println("Cannot kill", pck)
-		}
-	}
+//		if err != nil {
+//			log.Println("Cannot kill", pck)
+//		}
+//	}
 
-}
+//}
 
 //Kill an application
-//func KillApp(pck string) error {
-//	cmd := adb + " shell am force-stop " + pck
-//	_, err := util.ExeCmd(cmd)
-//	return err
-//}
+func KillApp(pck string) error {
+	cmd := adb + " shell su -c am force-stop " + pck
+	_, err := util.ExeCmd(cmd)
+	return err
+}
 
-//func ClearApp(pck string) error {
-//	cmd := adb + " shell pm clear " + pck
-//	_, err := util.ExeCmd(cmd)
-//	return err
-//}
+func ClearApp(pck string) error {
+	cmd := adb + " shell pm clear " + pck
+	_, err := util.ExeCmd(cmd)
+	return err
+}
 
 func InitADB(sdk string) {
 	adb = path.Join(sdk, "platform-tools/adb")

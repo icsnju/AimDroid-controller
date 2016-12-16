@@ -3,6 +3,7 @@ package test
 import (
 	"log"
 	"minitrace/trace"
+	"strconv"
 	"time"
 )
 
@@ -61,10 +62,13 @@ func StartTrace(pckname string, start time.Time, goon, goback chan int) {
 					needback = false
 				}
 				dur := time.Now().Sub(start).Seconds()
-				durI := int(dur)
-				trace.PullCoverage(pckname, durI)
+				durI := strconv.Itoa(int(dur))
+				trace.CopyCoverage(pckname, durI)
 			}
 		}
 	}
+
+	trace.DownloadCoverage(pckname)
+	goback <- TRACE_PULL
 	log.Println("Minitracing is stopping...")
 }

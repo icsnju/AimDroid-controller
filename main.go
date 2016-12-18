@@ -3,10 +3,10 @@ package main
 import (
 	"bufio"
 	"log"
-	"minitrace/trace"
 	"monidroid/android"
 	"monidroid/config"
 	"monidroid/test"
+	"monidroid/trace"
 	"monidroid/util"
 	"net"
 	"time"

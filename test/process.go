@@ -5,6 +5,7 @@ import (
 	"log"
 	"monidroid/android"
 	"monidroid/config"
+	"monidroid/trace"
 	"monidroid/util"
 	"net"
 	"path"
@@ -61,7 +62,7 @@ func Start(a, g *net.TCPConn, cr *bufio.Reader) {
 	//start get crash from ape
 	go startCrashReader()
 	//start get coverage report
-	go StartTrace(config.GetPackageName(), startTime, traceChan, traceBackChan)
+	go trace.StartTrace(config.GetPackageName(), startTime, traceChan, traceBackChan)
 
 	//init key
 	setKey(FALSE, "", "", "")
@@ -255,9 +256,9 @@ func Start(a, g *net.TCPConn, cr *bufio.Reader) {
 	setKey(FALSE, "", "", "")
 
 	//stop trace
-	traceChan <- TRACE_DUMP
+	traceChan <- trace.TRACE_DUMP
 	<-traceBackChan
-	traceChan <- TRACE_STOP
+	traceChan <- trace.TRACE_STOP
 	<-traceBackChan
 
 	//stop application
@@ -274,7 +275,7 @@ func Start(a, g *net.TCPConn, cr *bufio.Reader) {
 
 func killStartThisActivity(act *Activity, haveCrash bool) bool {
 	//dump coverage
-	traceChan <- TRACE_DUMP
+	traceChan <- trace.TRACE_DUMP
 	<-traceBackChan
 
 	android.KillApp(config.GetPackageName())
@@ -460,7 +461,7 @@ func startObserver() {
 				}
 				log.Println("X and Y:", gX, gY)
 			} else if len(iterms) >= 3 && iterms[1] == LOG_MINITRACE && iterms[2] == LOG_SUCCEED {
-				traceChan <- TRACE_PULL
+				traceChan <- trace.TRACE_PULL
 				log.Println("Dump is finished. Start to Pull....")
 			}
 

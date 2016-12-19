@@ -110,15 +110,18 @@ func DownloadCoverage(name string) {
 func DumpCoverage(name string, start time.Time, goon chan int) bool {
 	cmd := adb + " shell ps | grep " + name
 	out := execmd(cmd)
-	log.Println("Start to dump the coverage file in the device.")
 	lines := strings.Split(out, "\n")
+	log.Println("Start to dump the coverage file in ", len(lines), "processes")
 	for index, line := range lines {
 		if len(line) > 0 {
 			iterms := strings.Fields(line)
 			if len(iterms) >= 9 {
 				pid := iterms[1]
 				cmd = adb + " shell su -c kill -USR2 " + pid
-				execmd(cmd)
+				out = execmd(cmd)
+				if len(out) > 0 {
+					continue
+				}
 				log.Println("Start to dump the coverage file of process:", pid)
 				dumpok := <-goon
 				if dumpok == TRACE_PULL {

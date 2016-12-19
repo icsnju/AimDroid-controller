@@ -40,6 +40,8 @@ var gY int = 1280
 var traceChan chan int = make(chan int)
 var traceBackChan chan int = make(chan int)
 
+var eventCount int = 0
+
 //Start test
 func Start(a, g *net.TCPConn, cr *bufio.Reader) {
 	//TODO:send pkgname
@@ -176,6 +178,7 @@ func Start(a, g *net.TCPConn, cr *bufio.Reader) {
 				}
 				//send action
 				gLogCache.clearRC()
+				eventCount += action.getEventCount()
 				sendActionToApe(action)
 				log.Println("Send action:", action.content, action.getQ())
 				//time.Sleep(time.Millisecond * 500)
@@ -270,7 +273,7 @@ func Start(a, g *net.TCPConn, cr *bufio.Reader) {
 	android.KillApp(config.GetPackageName())
 
 	log.Println(gActivityQueue.ToString())
-	gActivityQueue.Save("out/" + config.GetPackageName())
+	gActivityQueue.Save("out/"+config.GetPackageName(), eventCount)
 }
 
 func killStartThisActivity(act *Activity, haveCrash bool) bool {

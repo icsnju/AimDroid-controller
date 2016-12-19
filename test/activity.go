@@ -133,7 +133,7 @@ func (this *ActivityQueue) AddCrash(content string, seqindex int) bool {
 }
 
 //Save queue in file
-func (this *ActivityQueue) Save(out string) {
+func (this *ActivityQueue) Save(out string, eventCount int) {
 	if _, err := os.Stat(out); os.IsNotExist(err) {
 		os.MkdirAll(out, os.ModePerm)
 	}
@@ -141,6 +141,7 @@ func (this *ActivityQueue) Save(out string) {
 	queueFile := path.Join(out, "queue.txt")
 	fs, err := os.OpenFile(queueFile, os.O_CREATE|os.O_RDWR, os.ModePerm)
 	util.FatalCheck(err)
+	fs.WriteString("Send events: " + strconv.Itoa(eventCount) + "\n")
 	fs.WriteString("Find activities " + strconv.Itoa(len(this.set)) + ":\n")
 	for act, test := range this.set {
 		fs.WriteString(act + "\t" + strconv.FormatInt(test.Act.findTime, 10) + "\n")

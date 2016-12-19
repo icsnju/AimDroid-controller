@@ -138,8 +138,6 @@ func StartTrace(pckname string, start time.Time, goon, goback chan int) {
 
 	loop := true
 	for loop {
-		//5 minutes timer
-
 		select {
 		case v := <-goon:
 			if v == TRACE_STOP {

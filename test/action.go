@@ -32,6 +32,15 @@ func (this *Action) getContent() string {
 	return this.content
 }
 
+func (this *Action) getEventCount() int {
+	if strings.Contains(this.content, "taptype") || strings.Contains(this.content, "drag") {
+		return 3
+	} else if strings.Contains(this.content, "tap") {
+		return 2
+	}
+	return 1
+}
+
 //Action set
 type ActionSet struct {
 	queue []*Action

@@ -66,6 +66,12 @@ func (this *ActivityQueue) Enqueue(name, intent, parent string, time int64) bool
 	return !ex
 }
 
+func (this *ActivityQueue) EnqueueAgain(a *Activity) {
+	this.lock.Lock()
+	defer this.lock.Unlock()
+	this.queue = append(this.queue, a)
+}
+
 func (this *ActivityQueue) Dequeue() *Activity {
 	this.lock.Lock()
 	defer this.lock.Unlock()

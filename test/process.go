@@ -156,101 +156,96 @@ func Start(a, g *net.TCPConn, cr *bufio.Reader) {
 
 		//Step3: send event
 		log.Println("3. Start send action")
-		times := 1
-		//Generate some testing sequences
-		for times > 0 {
-			times = 0
-			sequence := NewActionSequence()
+		times := 0
+		sequence := NewActionSequence()
 
-			var index int = 0
-			_, index = mTest.ActSet.GetEpGreAction()
-			//Create an action sequence
-			for i := 0; ; i++ {
-				if i > 2*mTest.ActSet.GetCount() && i > config.GetMinSeqLen() {
-					break
-				}
+		var index int = 0
+		_, index = mTest.ActSet.GetEpGreAction()
+		//Create an action sequence
+		for i := 0; ; i++ {
+			if i > 2*mTest.ActSet.GetCount() && i > config.GetMinSeqLen() {
+				break
+			}
 
-				//get an action
-				action := mTest.ActSet.GetAction(index)
-				if action == nil {
-					log.Fatalln("No action found!")
-					break
-				}
-				//send action
-				gLogCache.clearRC()
-				eventCount += action.getEventCount()
-				sendActionToApe(action)
-				log.Println("Send action:", action.content, action.getQ())
-				//time.Sleep(time.Millisecond * 500)
+			//get an action
+			action := mTest.ActSet.GetAction(index)
+			if action == nil {
+				log.Fatalln("No action found!")
+				break
+			}
+			//send action
+			gLogCache.clearRC()
+			eventCount += action.getEventCount()
+			sendActionToApe(action)
+			log.Println("Send action:", action.content, action.getQ())
+			//time.Sleep(time.Millisecond * 500)
 
-				//if it go out of the target activity
-				isOut := !currentActIsRight(name, MAX_TRY)
+			//if it go out of the target activity
+			isOut := !currentActIsRight(name, MAX_TRY)
 
-				//Get current view
-				if !isOut {
-					gLogCache.clearA()
-					sendCommandToApe(APE_TREE)
-					time.Sleep(time.Millisecond * 1000)
-					gLogCache.filterAction(mTest.ActSet)
-					tb = NewAction("key down 82")
-					mTest.ActSet.AddAction(tb)
-				}
+			//Get current view
+			if !isOut {
+				gLogCache.clearA()
+				sendCommandToApe(APE_TREE)
+				time.Sleep(time.Millisecond * 1000)
+				gLogCache.filterAction(mTest.ActSet)
+				tb = NewAction("key down 82")
+				mTest.ActSet.AddAction(tb)
+			}
 
-				//get result
-				rs := gLogCache.filterResult()
+			//get result
+			rs := gLogCache.filterResult()
 
-				//If it is a crash
-				if rs.GetKind() == R_CRASH {
-					cr, ok := rs.(*CrashResult)
-					if ok {
-						ex := gActivityQueue.AddCrash(name+"@"+action.content, len(mTest.SequenceArray))
-						//old crash
-						if ex {
-							cr.SetKind(R_NOCHANGE)
-						}
-						mTest.HaveCrash = true
-					} else {
+			//If it is a crash
+			if rs.GetKind() == R_CRASH {
+				cr, ok := rs.(*CrashResult)
+				if ok {
+					ex := gActivityQueue.AddCrash(name+"@"+action.content, len(mTest.SequenceArray))
+					//old crash
+					if ex {
 						cr.SetKind(R_NOCHANGE)
 					}
+					mTest.HaveCrash = true
+				} else {
+					cr.SetKind(R_NOCHANGE)
 				}
-
-				if isOut && rs.GetKind() <= R_FINISH {
-					rs.SetKind(R_FINISH)
-				}
-
-				//Step4. Adjust Q value of this action
-				_, index2 := mTest.ActSet.GetEpGreAction()
-				feedback := Reward(mTest.ActSet, index, index2, rs, name, int64(time.Now().Sub(startTime).Seconds()))
-				//If you can find something new, we will loop again
-				times += feedback
-				log.Println("Adjust reward of this action: ", rs.GetKind(), feedback)
-
-				sequence.add(index, rs)
-				mTest.addEdge(rs, sequence.count)
-				index = index2
-				//Testing is out of this activity, so restart it
-				//This aciton sequence it too long, let's start a new sequence
-				if isOut || sequence.count > config.GetMaxSeqLen() {
-					break
-				}
-
-			} //finish an action sequence
-
-			if sequence.getCount() > 0 {
-				mTest.SequenceArray = append(mTest.SequenceArray, sequence)
 			}
-			//Restart this activity
-			if times > 0 {
-				ok := killStartThisActivity(activity, mTest.HaveCrash)
-				if !ok {
-					break
-				}
-				log.Println("4. I want to test this Activity again:", activity.GetName())
+
+			if isOut && rs.GetKind() <= R_FINISH {
+				rs.SetKind(R_FINISH)
 			}
+
+			//Step4. Adjust Q value of this action
+			_, index2 := mTest.ActSet.GetEpGreAction()
+			feedback := Reward(mTest.ActSet, index, index2, rs, name, int64(time.Now().Sub(startTime).Seconds()))
+			//If you can find something new, we will loop again
+			times += feedback
+			log.Println("Adjust reward of this action: ", rs.GetKind(), feedback)
+
+			sequence.add(index, rs)
+			mTest.addEdge(rs, sequence.count)
+			index = index2
+			//Testing is out of this activity, so restart it
+			//This aciton sequence it too long, let's start a new sequence
+			if isOut || sequence.count > config.GetMaxSeqLen() {
+				break
+			}
+
+		} //finish an action sequence
+
+		if sequence.getCount() > 0 {
+			mTest.SequenceArray = append(mTest.SequenceArray, sequence)
 		}
-		//Step5. Save results of this activity
-		//log.Println("[Monkey]", out)
-		if mTest != nil {
+
+		if times > 0 {
+			//				ok := killStartThisActivity(activity, mTest.HaveCrash)
+			//				if !ok {
+			//					break
+			//				}
+			//				log.Println("4. I want to test this Activity again:", activity.GetName())
+			//Test this activity again
+			gActivityQueue.EnqueueAgain(activity)
+		} else if mTest != nil {
 			gActivityQueue.EnOldQueue(activity)
 		}
 	}

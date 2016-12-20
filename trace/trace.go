@@ -123,13 +123,18 @@ func DumpCoverage(name string, start time.Time, goon chan int) bool {
 					continue
 				}
 				log.Println("Start to dump the coverage file of process:", pid)
-				dumpok := <-goon
-				if dumpok == TRACE_PULL {
-					dur := int(time.Now().Sub(start).Seconds()) + index
-					durI := strconv.Itoa(int(dur))
-					log.Println("Start to copy the coverage file in time:", durI)
-					CopyCoverage(name, durI)
+
+				//dumping may not response
+				select {
+				case <-goon:
+				case <-time.After(5 * time.Second):
 				}
+
+				dur := int(time.Now().Sub(start).Seconds()) + index
+				durI := strconv.Itoa(int(dur))
+				log.Println("Start to copy the coverage file in time:", durI)
+				CopyCoverage(name, durI)
+
 			}
 		}
 	}

@@ -49,7 +49,7 @@ func Start(a, g *net.TCPConn, cr *bufio.Reader) {
 	//	util.FatalCheck(err)
 	startTime := time.Now()
 	finishTime := startTime.Add(time.Duration(config.GetTime()) * time.Second)
-	log.Println("Start test..")
+	log.Println("Start test..", config.GetPackageName())
 
 	//create activity queue
 	gActivityQueue = NewQueue()
@@ -155,7 +155,7 @@ func Start(a, g *net.TCPConn, cr *bufio.Reader) {
 		log.Println("2. Initial actions count:", mTest.ActSet.GetCount(), ", start to test activity..")
 
 		//Step3: send event
-		log.Println("3. Start send action")
+		log.Println("3. Start an action sequence..")
 		times := 0
 		sequence := NewActionSequence()
 
@@ -177,7 +177,7 @@ func Start(a, g *net.TCPConn, cr *bufio.Reader) {
 			gLogCache.clearRC()
 			eventCount += action.getEventCount()
 			sendActionToApe(action)
-			log.Println("Send action:", action.content, action.getQ())
+			log.Println("["+strconv.Itoa(i)+"] Send action:", action.content, action.getQ())
 			//time.Sleep(time.Millisecond * 500)
 
 			//if it go out of the target activity
@@ -220,7 +220,7 @@ func Start(a, g *net.TCPConn, cr *bufio.Reader) {
 			feedback := Reward(mTest.ActSet, index, index2, rs, name, int64(time.Now().Sub(startTime).Seconds()))
 			//If you can find something new, we will loop again
 			times += feedback
-			log.Println("Adjust reward of this action: ", rs.GetKind(), feedback)
+			log.Println("Reward of this action: ", rs.GetKind(), feedback)
 
 			sequence.add(index, rs)
 			mTest.addEdge(rs, sequence.count)

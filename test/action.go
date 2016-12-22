@@ -73,7 +73,7 @@ func (this *ActionSet) AddAction(action *Action) bool {
 	if len(iterms) >= 3 && iterms[0] == "tap" {
 		x, _ := strconv.Atoi(iterms[1])
 		y, _ := strconv.Atoi(iterms[2])
-		if x > gX || y > gY {
+		if x > gX || y > gY || x < 0 || y < 0 {
 			return false
 		}
 	}

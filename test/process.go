@@ -80,10 +80,9 @@ func Start(a, g *net.TCPConn, cr *bufio.Reader) {
 	//	}
 	android.KillApp(config.GetPackageName())
 
-	time.Sleep(time.Millisecond * 1000)
 	android.LaunchApp(config.GetPackageName(), config.GetMainActivity())
 	//sendCommandToApe(APE_LAUNCH + " " + config.GetPackageName() + " " + config.GetMainActivity())
-	time.Sleep(time.Millisecond * 3000)
+	time.Sleep(time.Millisecond * 4000)
 
 	//Get currently focused activity
 	root := android.GetCurrentActivity(config.GetMainActivity())
@@ -174,7 +173,7 @@ func Start(a, g *net.TCPConn, cr *bufio.Reader) {
 				break
 			}
 			//send action
-			gLogCache.clearRC()
+			//gLogCache.clearRC()
 			eventCount += action.getEventCount()
 			sendActionToApe(action)
 			log.Println("["+strconv.Itoa(i)+"] Send action:", action.content, action.getQ())

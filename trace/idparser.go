@@ -13,9 +13,10 @@ type Packages struct {
 }
 
 type Package struct {
-	XMLName xml.Name `xml:"package"`
-	Name    string   `xml:"name,attr"`
-	UserId  string   `xml:"userId,attr"`
+	XMLName      xml.Name `xml:"package"`
+	Name         string   `xml:"name,attr"`
+	UserId       string   `xml:"userId,attr"`
+	SharedUserId string   `xml:"sharedUserId,attr"`
 }
 
 //func main() {
@@ -71,12 +72,16 @@ func IdGetter(name string) string {
 	for _, pck := range packages.Pcks {
 		if pck.Name == name {
 			id = pck.UserId
-			log.Println(pck.Name, pck.UserId)
+			if len(id) <= 0 {
+				id = pck.SharedUserId
+			}
+			log.Println(pck.Name, id)
+			break
 		}
 	}
 
 	if len(id) <= 0 {
-		log.Fatalln("Cannot find this package in packages.xml...")
+		log.Fatalln("Cannot find this package in packages.xml...", name)
 	}
 	return id
 }

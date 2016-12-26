@@ -6,3 +6,5 @@ out/
 config*.json
 *out.zip
 packages.xml
+apkinfo.csv.backup
+moniall

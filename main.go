@@ -10,7 +10,6 @@ import (
 	"monidroid/util"
 	"net"
 	"os"
-	"strings"
 	"time"
 )
 
@@ -26,38 +25,15 @@ const (
 	GUIDER_MAIN_NAME    = "com.tianchi.monidroid.MainActivity"
 )
 
-var pckName string = ""
-var launchName string = ""
-
 func main() {
-	file, err := os.Open("apkinfo.csv")
-	if err != nil {
-		log.Fatalln(err)
-	}
-	defer file.Close()
-
-	scanner := bufio.NewScanner(file)
-	scanner.Split(bufio.ScanLines)
-
-	for scanner.Scan() {
-		line := scanner.Text()
-		iterms := strings.Split(line, ",")
-		if len(iterms) >= 3 && len(iterms[0]) > 0 && len(iterms[1]) > 0 {
-			pckName = iterms[0]
-			launchName = iterms[1]
-			log.Println("Start to test app:", pckName, launchName)
-			testOneApp()
-		}
-	}
-}
-
-func testOneApp() {
 
 	t1 := time.Now()
 	//init configuration
 	config.InitConfig()
-	config.SetPackageName(pckName)
-	config.SetMainActivity(launchName)
+	if len(os.Args) >= 3 {
+		config.SetPackageName(os.Args[1])
+		config.SetMainActivity(os.Args[2])
+	}
 	android.InitADB(config.GetSDKPath())
 
 	//push config to the device

@@ -43,8 +43,16 @@ func GetPackageName() string {
 	return configuration.PackageName
 }
 
+func SetPackageName(pkg string) {
+	configuration.PackageName = pkg
+}
+
 func GetMainActivity() string {
 	return configuration.MainActivity
+}
+
+func SetMainActivity(act string) {
+	configuration.MainActivity = act
 }
 
 func GetSDKPath() string {

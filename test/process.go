@@ -82,7 +82,7 @@ func Start(a, g *net.TCPConn, cr *bufio.Reader) {
 
 	android.LaunchApp(config.GetPackageName(), config.GetMainActivity())
 	//sendCommandToApe(APE_LAUNCH + " " + config.GetPackageName() + " " + config.GetMainActivity())
-	time.Sleep(time.Millisecond * 4000)
+	time.Sleep(time.Second * 10)
 
 	//Get currently focused activity
 	root := android.GetCurrentActivity(config.GetMainActivity())
@@ -348,7 +348,8 @@ func startThisActivityFromParent(parent, me string) bool {
 func currentActIsRight(name string, try int) bool {
 	cn := android.GetCurrentActivity(name)
 	count := 0
-	for name != cn {
+
+	for !(strings.Contains(name, cn) || strings.Contains(cn, name)) {
 		count++
 		if count > try {
 			break
@@ -356,7 +357,7 @@ func currentActIsRight(name string, try int) bool {
 		time.Sleep(time.Millisecond * 1000)
 		cn = android.GetCurrentActivity(name)
 	}
-	return name == cn
+	return (strings.Contains(name, cn) || strings.Contains(cn, name))
 }
 
 //Set the key of guider

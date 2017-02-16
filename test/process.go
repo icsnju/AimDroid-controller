@@ -3,8 +3,10 @@ package test
 import (
 	"bufio"
 	"log"
+	"math/rand"
 	"monidroid/android"
 	"monidroid/config"
+	"monidroid/trace"
 	"monidroid/util"
 	"net"
 	"path"
@@ -37,8 +39,8 @@ var gLogCache *LogCache = nil
 var gX int = 800
 var gY int = 1280
 
-//var traceChan chan int = make(chan int)
-//var traceBackChan chan int = make(chan int)
+var traceChan chan int = make(chan int)
+var traceBackChan chan int = make(chan int)
 
 var eventCount int = 0
 
@@ -64,7 +66,7 @@ func Start(a, g *net.TCPConn, cr *bufio.Reader) {
 	//start get crash from ape
 	go startCrashReader()
 	//start get coverage report
-	//go trace.StartTrace(config.GetPackageName(), startTime, traceChan, traceBackChan)
+	go trace.StartTrace(config.GetPackageName(), startTime, traceChan, traceBackChan)
 
 	//init key
 	setKey(FALSE, "", "", "")
@@ -188,8 +190,11 @@ func Start(a, g *net.TCPConn, cr *bufio.Reader) {
 				sendCommandToApe(APE_TREE)
 				time.Sleep(time.Millisecond * 1000)
 				gLogCache.filterAction(mTest.ActSet)
-				tb = NewAction("key down 82")
-				mTest.ActSet.AddAction(tb)
+				ifAddMenuKey := rand.Intn(10)
+				if ifAddMenuKey <= 3 {
+					tb = NewAction("key down 82")
+					mTest.ActSet.AddAction(tb)
+				}
 			}
 
 			//get result
@@ -253,10 +258,10 @@ func Start(a, g *net.TCPConn, cr *bufio.Reader) {
 	setKey(FALSE, "", "", "")
 
 	//stop trace
-	//traceChan <- trace.TRACE_DUMP
-	//<-traceBackChan
-	//traceChan <- trace.TRACE_STOP
-	//<-traceBackChan
+	traceChan <- trace.TRACE_DUMP
+	<-traceBackChan
+	traceChan <- trace.TRACE_STOP
+	<-traceBackChan
 
 	//stop application
 	//	if config.GetClearData() {
@@ -272,8 +277,8 @@ func Start(a, g *net.TCPConn, cr *bufio.Reader) {
 
 func killStartThisActivity(act *Activity, haveCrash bool) bool {
 	//dump coverage
-	//traceChan <- trace.TRACE_DUMP
-	//<-traceBackChan
+	traceChan <- trace.TRACE_DUMP
+	<-traceBackChan
 
 	android.KillApp(config.GetPackageName())
 	time.Sleep(time.Millisecond * 500)
@@ -459,7 +464,7 @@ func startObserver() {
 				}
 				log.Println("X and Y:", gX, gY)
 			} else if len(iterms) >= 3 && iterms[1] == LOG_MINITRACE && iterms[2] == LOG_SUCCEED {
-				//traceChan <- trace.TRACE_PULL
+				traceChan <- trace.TRACE_PULL
 				log.Println("Dump is finished. Start to Pull....")
 			}
 

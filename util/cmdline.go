@@ -1,7 +1,6 @@
 package util
 
 import (
-	"log"
 	"os/exec"
 	"strings"
 )
@@ -28,10 +27,4 @@ func CreateCmd(cmd string) *exec.Cmd {
 
 	command := exec.Command(head, parts...)
 	return command
-}
-
-func FatalCheck(err error) {
-	if err != nil {
-		log.Fatalln(err)
-	}
 }

@@ -7,7 +7,6 @@ import (
 	"monidroid/android"
 	"monidroid/config"
 	"monidroid/trace"
-	"monidroid/util"
 	"net"
 	"path"
 	"strconv"
@@ -252,11 +251,13 @@ func Start(a, g *net.TCPConn, cr *bufio.Reader) {
 		} else if mTest != nil {
 			gActivityQueue.EnOldQueue(activity)
 		}
-	}
 
+	}
+	log.Println("Time is out..")
 	//clear the key
 	setKey(FALSE, "", "", "")
 
+	log.Println("Last trace..")
 	//stop trace
 	traceChan <- trace.TRACE_DUMP
 	<-traceBackChan
@@ -389,21 +390,27 @@ func setKey(block, target, intent, child string) {
 
 	guider.SetWriteDeadline(time.Now().Add(time.Minute))
 	_, err := guider.Write([]byte(keys))
-	util.FatalCheck(err)
+	if err != nil {
+		log.Println("Send key:", keys, err)
+	}
 	time.Sleep(1000 * time.Millisecond)
 }
 
 func sendCommandToApe(cmd string) {
 	ape.SetWriteDeadline(time.Now().Add(time.Minute))
 	_, err := ape.Write([]byte(cmd + "\n"))
-	util.FatalCheck(err)
+	if err != nil {
+		log.Fatalln("sendCommandToApe:", cmd, err)
+	}
 }
 
 func sendActionToApe(a *Action) {
 	//log.Println("Send action: ", a.getContent(), a.getAveReward())
 	ape.SetWriteDeadline(time.Now().Add(time.Minute))
 	_, err := ape.Write([]byte(a.getContent() + "\n"))
-	util.FatalCheck(err)
+	if err != nil {
+		log.Fatalln("sendActionToApe:", a.getContent(), err)
+	}
 }
 
 func startObserver() {
@@ -414,7 +421,9 @@ func startObserver() {
 	}
 
 	read, err := android.StartLogcat()
-	util.FatalCheck(err)
+	if err != nil {
+		log.Fatalln("startObserver:", err)
+	}
 
 	isLock := false
 	deadTime := time.Now()

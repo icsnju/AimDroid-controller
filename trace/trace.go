@@ -2,6 +2,7 @@ package trace
 
 import (
 	"log"
+	"monidroid/util"
 	"os"
 	"path"
 	"strconv"
@@ -23,7 +24,7 @@ func PushConfig(name string) {
 	uidStr := IdGetter(name)
 	uid, err := strconv.Atoi(uidStr)
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatalln("PushConfig:", err)
 	}
 	uidShortStr := strconv.Itoa(uid - 10000)
 	targetUser := "u0_a" + uidShortStr
@@ -46,7 +47,7 @@ func PushConfig(name string) {
 		if os.IsNotExist(err) {
 			file, err = os.Create(targetConfigFileName)
 			if err != nil {
-				log.Fatalln(err)
+				log.Fatalln("PushConfig:", err)
 			}
 
 		}
@@ -59,14 +60,14 @@ func PushConfig(name string) {
 
 		// push file to device
 		cmd := adb + " push " + targetConfigFileName + " /sdcard/"
-		execmd(cmd)
+		util.ExeCmd(cmd)
 		cmd = adb + " shell su -c mv /sdcard/" + targetConfigFileName + " /data/"
-		execmd(cmd)
+		util.ExeCmd(cmd)
 		cmd = adb + " shell su -c chown " + targetUser + ":" + targetGroup + " /data/" + targetConfigFileName
-		execmd(cmd)
+		util.ExeCmd(cmd)
 		err = os.Remove(targetConfigFileName)
 		if err != nil {
-			log.Fatalln(err)
+			log.Fatalln("PushConfig:", err)
 		}
 	}
 
@@ -165,4 +166,10 @@ func StartTrace(pckname string, start time.Time, goon, goback chan int) {
 	DownloadCoverage(pckname)
 	goback <- TRACE_STOP
 	log.Println("Minitracing is stopping...")
+}
+
+func StopTrace() {
+	log.Println("Stop trace..")
+	cmd := adb + " shell su -c rm /data/mini_trace*"
+	util.ExeCmd(cmd)
 }

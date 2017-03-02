@@ -159,7 +159,9 @@ func KillApe() {
 
 //adb forward
 func Forward(pcPort, mobilePort string) error {
-	cmd := adb + " forward tcp:" + pcPort + " tcp:" + mobilePort
+	cmd := adb + " forward --remove tcp:" + pcPort
+	util.ExeCmd(cmd)
+	cmd = adb + " forward tcp:" + pcPort + " tcp:" + mobilePort
 	_, err := util.ExeCmd(cmd)
 	return err
 }

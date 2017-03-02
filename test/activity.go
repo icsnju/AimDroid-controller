@@ -1,7 +1,7 @@
 package test
 
 import (
-	"monidroid/util"
+	"log"
 	"os"
 	"path"
 	"strconv"
@@ -146,7 +146,9 @@ func (this *ActivityQueue) Save(out string, eventCount int) {
 
 	queueFile := path.Join(out, "queue.txt")
 	fs, err := os.OpenFile(queueFile, os.O_CREATE|os.O_RDWR, os.ModePerm)
-	util.FatalCheck(err)
+	if err != nil {
+		log.Fatalln("Save queue:", err)
+	}
 	fs.WriteString("Send events: " + strconv.Itoa(eventCount) + "\n")
 	fs.WriteString("Find activities " + strconv.Itoa(len(this.set)) + ":\n")
 	for act, test := range this.set {
@@ -156,7 +158,9 @@ func (this *ActivityQueue) Save(out string, eventCount int) {
 
 	crashFile := path.Join(out, "crash.txt")
 	fs, err = os.OpenFile(crashFile, os.O_CREATE|os.O_RDWR, os.ModePerm)
-	util.FatalCheck(err)
+	if err != nil {
+		log.Fatalln("Save crash:", err)
+	}
 	for content, seqindex := range this.crashSet {
 		fs.WriteString(content + "\t" + strconv.Itoa(seqindex) + "\n")
 	}

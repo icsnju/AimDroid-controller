@@ -1,7 +1,7 @@
 package test
 
 import (
-	"monidroid/util"
+	"log"
 	"os"
 	"path"
 	"strconv"
@@ -100,7 +100,9 @@ func (this *CrashResult) Save(out string) {
 
 	crashFile := path.Join(out, strconv.Itoa(this.index)+".txt")
 	fs, err := os.OpenFile(crashFile, os.O_CREATE|os.O_RDWR, os.ModePerm)
-	util.FatalCheck(err)
+	if err != nil {
+		log.Fatalln("CrashResult Save:", err)
+	}
 	fs.WriteString(this.content)
 	fs.Close()
 }

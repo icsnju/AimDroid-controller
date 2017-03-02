@@ -23,7 +23,7 @@ func execmd(cmd string) string {
 
 	out, err := exec.Command(head, parts...).Output()
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatalln("Execmd:", cmd, err)
 	} else if len(out) > 0 {
 		//log.Println(string(out))
 		return string(out)

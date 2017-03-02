@@ -3,7 +3,6 @@ package test
 import (
 	"encoding/json"
 	"log"
-	"monidroid/util"
 	"os"
 	"path"
 	"strconv"
@@ -41,7 +40,9 @@ func (this *Test) Save(out string) {
 	//save activity
 	actFile := path.Join(mDir, "activity.txt")
 	fs, err := os.OpenFile(actFile, os.O_CREATE|os.O_RDWR, os.ModePerm)
-	util.FatalCheck(err)
+	if err != nil {
+		log.Fatalln("Save activity:", err)
+	}
 
 	name, intent := this.Act.Get()
 	fs.WriteString(name + "\n")
@@ -52,7 +53,9 @@ func (this *Test) Save(out string) {
 	//save actions
 	actionFile := path.Join(mDir, "actions.txt")
 	fs, err = os.OpenFile(actionFile, os.O_CREATE|os.O_RDWR, os.ModePerm)
-	util.FatalCheck(err)
+	if err != nil {
+		log.Fatalln("Save Actions:", err)
+	}
 	queue := this.ActSet.queue
 	for _, action := range queue {
 		fs.WriteString(action.getContent() + "\t" + strconv.FormatFloat(action.Q, 'f', 4, 64) + "\n")
@@ -73,7 +76,9 @@ func (this *Test) Save(out string) {
 	for i, seq := range this.SequenceArray {
 		seqFile := path.Join(seqsDir, strconv.Itoa(i)+".txt")
 		fs, err = os.OpenFile(seqFile, os.O_CREATE|os.O_RDWR, os.ModePerm)
-		util.FatalCheck(err)
+		if err != nil {
+			log.Fatalln("Save Sequence:", err)
+		}
 		for j, ai := range seq.sequence {
 			action := queue[ai]
 			fs.WriteString(action.getContent())
@@ -93,7 +98,9 @@ func (this *Test) Save(out string) {
 	//save edges
 	edgeFile := path.Join(mDir, "edge.txt")
 	fs, err = os.OpenFile(edgeFile, os.O_CREATE|os.O_RDWR, os.ModePerm)
-	util.FatalCheck(err)
+	if err != nil {
+		log.Println("Save edge:", err)
+	}
 
 	for _, e := range this.Find {
 		content, err := json.Marshal(e)

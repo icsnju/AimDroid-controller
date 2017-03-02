@@ -54,19 +54,19 @@ func IdGetter(name string) string {
 	//parser the xml file
 	packFile, err := os.Open("packages.xml")
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatalln("IdGetter:", err)
 	}
 	defer packFile.Close()
 
 	data, err := ioutil.ReadAll(packFile)
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatalln("IdGetter:", err)
 	}
 
 	packages := Packages{}
 	err = xml.Unmarshal(data, &packages)
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatalln("IdGetter:", err)
 	}
 
 	for _, pck := range packages.Pcks {

@@ -165,10 +165,7 @@ func StartTrace(pckname string, start time.Time, goon, goback chan int) {
 
 	DownloadCoverage(pckname)
 	goback <- TRACE_STOP
-	log.Println("Minitracing is stopping...")
-}
 
-func StopTrace() {
 	log.Println("Stop trace..")
 	cmd := adb + " shell su -c rm /data/mini_trace*"
 	util.ExeCmd(cmd)

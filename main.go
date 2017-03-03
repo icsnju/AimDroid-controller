@@ -38,7 +38,6 @@ func main() {
 	//push config to the device
 	trace.InitADB(config.GetSDKPath())
 	trace.PushConfig(config.GetPackageName())
-	defer trace.StopTrace()
 
 	//start ape server
 	apeIn, apeOut := startApeServer()

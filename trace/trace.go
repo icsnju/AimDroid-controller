@@ -61,7 +61,7 @@ func PushConfig(name string) {
 		// push file to device
 		cmd := adb + " push " + targetConfigFileName + " /sdcard/"
 		util.ExeCmd(cmd)
-		cmd = adb + " shell su -c mv /sdcard/" + targetConfigFileName + " /data/"
+		cmd = adb + " shell su -c cp /sdcard/" + targetConfigFileName + " /data/"
 		util.ExeCmd(cmd)
 		cmd = adb + " shell su -c chown " + targetUser + ":" + targetGroup + " /data/" + targetConfigFileName
 		util.ExeCmd(cmd)
@@ -72,6 +72,8 @@ func PushConfig(name string) {
 	}
 
 	cmd := adb + " shell su -c setenforce 0"
+	execmd(cmd)
+	cmd = adb + " shell rm /sdcard/mini_trace*"
 	execmd(cmd)
 	//delete old files
 	cmd = adb + " shell rm -rf /sdcard/coverage"

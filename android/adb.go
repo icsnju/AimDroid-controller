@@ -85,6 +85,31 @@ func StartLogcat() (*bufio.Reader, error) {
 	return read, nil
 }
 
+//start logcat
+func StartLogcat2() (*bufio.Reader, error) {
+
+	_, err := util.ExeCmd(adb + " logcat -c")
+	if err != nil {
+		return nil, err
+	}
+
+	cmd := util.CreateCmd(adb + " logcat Monitor_Log:V dalvikvm:I *:S")
+
+	// Create stdout, stderr streams of type io.Reader
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, err
+	}
+	// Start command
+	err = cmd.Start()
+	if err != nil {
+		return nil, err
+	}
+
+	read := bufio.NewReader(stdout)
+	return read, nil
+}
+
 //push file to the device
 func PushFile(src, dst string) error {
 	if _, err := os.Stat(src); err == nil {

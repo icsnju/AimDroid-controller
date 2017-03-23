@@ -13,9 +13,9 @@ import (
 )
 
 const (
-	GUIDER           = "127.0.0.1:8123"
+	GUIDER           = "127.0.0.1:50122"
 	APE              = "127.0.0.1:8025"
-	MY_GUIDER_PORT   = "8123"
+	MY_GUIDER_PORT   = "50122"
 	YOUR_GUIDER_PORT = "50122"
 	MY_APE_PORT      = "8025"
 	YOUR_APE_PORT    = "8025"

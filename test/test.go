@@ -10,7 +10,7 @@ import (
 	"sync"
 )
 
-const MAX_TRY = 5
+const MAX_TRY = 10
 
 type Test struct {
 	Act           *Activity

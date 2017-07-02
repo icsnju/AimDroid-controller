@@ -44,3 +44,13 @@ Here is the explanation of each option.
 4. `Epsilon`, `Alpha`, `Gamma`: the parameters for the reinforcement learning module. See the paper for more details.
 5. `MaxSeqLen`, `MinSeqLen`: the length of actions in a single activity. See the paper for more details.
 6. `Time`: the total testing time in seconds.
+
+
+## Emulator
+
+We have encountered problems of invoking `su -c` on the emulator.
+Apply the following patch if you want to build a version for emulator.
+
+```
+find . -name "*.go" -exec sed -i "s/su -c//" {} \;
+```

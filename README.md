@@ -24,9 +24,9 @@ Here is a sample of configuration file.
 
 ```
 {
-    "PackageName":"com.cvicse.zhnt",
-    "MainActivity":"com.cvicse.zhnt.LoadingActivity",
-    "SDKPath":"/home/dmemo/Android/android-sdk-linux",
+    "PackageName":"com.google.android.apps.photos",
+    "MainActivity":"com.google.android.apps.photos.home.HomeActivity",
+    "SDKPath":"/Users/tianxiaogu/Library/Android/sdk/",
     "Epsilon":0.2,
     "Alpha":0.6,
     "Gamma":0.5,

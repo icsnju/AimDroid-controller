@@ -1,6 +1,7 @@
 # README
 
 
+
 This project hosts the implementation of the controller of AimDroid.
 The internal name of the controller is `monidroid`
 
@@ -12,9 +13,11 @@ The internal name of the controller is `monidroid`
     1. Create the default go workspace at `$HOME/go/`.
     2. Setup env variable `GOPATH`: `export GOPATH=$HOME/go`
     3. Create the default go source code folder at `$HOME/go/src`.
-3. Change directory to `$HOME/go/src` and clone the source code of Monidroid: `git clone `
-4. Change directory to `$HOME/go/src/Monidroid` and run `go build`.
-5. You will see an executable tool named `monidroid` at `$HOME/go/src/Monidroid/`
+3. Change directory to `$HOME/go/src` and clone the source code of Monidroid:
+    1. `git clone  git@github.com:icsnju/AimDroid-controller.git  monidroid`.
+    2. The folder name must be `monidroid`.
+4. Change directory to `$HOME/go/src/monidroid` and run `go build`.
+5. You will see an executable tool named `monidroid` at `$HOME/go/src/monidroid/`
 
 
 ## Configuration
@@ -48,9 +51,11 @@ Here is the explanation of each option.
 
 ## Emulator
 
+AimDroid was first evaluated on real table devices.
 We have encountered problems of invoking `su -c` on the emulator.
 Apply the following patch if you want to build a version for emulator.
 
 ```
+cd $HOME/go/src/monidroid
 find . -name "*.go" -exec sed -i "s/su -c//" {} \;
 ```
